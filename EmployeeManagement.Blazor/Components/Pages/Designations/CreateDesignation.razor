@@ -1,0 +1,200 @@
+﻿@page "/designations/create"
+@rendermode InteractiveServer
+
+@using EmployeeManagement.Blazor.Components.Shared
+@using EmployeeManagement.Blazor.Models.DesignationModels
+@using EmployeeManagement.Blazor.Services.Designation
+
+
+@inject IDesignationService DesignationService
+@inject NavigationManager Navigation
+
+
+
+<PageTitle>Add Designation</PageTitle>
+
+<div class="container">
+
+    <div class="d-flex justify-content-between
+                align-items-center mb-4">
+
+        <h3>Add Designation</h3>
+
+        <button class="btn btn-secondary"
+                @onclick="GoBack">
+
+            Back
+
+        </button>
+
+    </div>
+    <div class="card">
+
+        <div class="card-body">
+            @if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                <div class="alert alert-danger">
+                    <strong>Error:</strong>
+                    @errorMessage
+                </div>
+            }
+
+            <EditForm Model="@model"
+                      OnValidSubmit="@SaveDesignation">
+
+                <DataAnnotationsValidator />
+
+                <div class="card shadow-sm">
+
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            Department Information
+                        </h5>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row">
+
+                            <!-- Department Name -->
+
+                            <div class="col-md-6 mb-3">
+
+                                <label class="form-label">
+                                    Department Name
+                                    <span class="text-danger">*</span>
+                                </label>
+
+                                <InputText class="form-control"
+                                           @bind-Value="model.Name" />
+
+                                <ValidationMessage For="@(() => model.Name)" />
+
+                            </div>
+
+
+                            <!-- Description -->
+
+                            <div class="col-md-6 mb-3">
+
+                                <label class="form-label">
+                                    Description
+                                </label>
+
+                                <InputTextArea class="form-control"
+                                               rows="3"
+                                               @bind-Value="model.Description" />
+
+                                <ValidationMessage For="@(() => model.Description)" />
+
+                            </div>
+
+
+                            <!-- Status -->
+
+                            <div class="col-md-6 mb-3">
+
+                                <div class="form-check mt-4">
+
+                                    <InputCheckbox class="form-check-input"
+                                                   @bind-Value="model.IsActive" />
+
+                                    <label class="form-check-label">
+                                        Active
+                                    </label>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="card-footer">
+
+                        <button type="submit"
+                                class="btn btn-primary me-2"
+                                disabled="@isSaving">
+
+                            @if (isSaving)
+                            {
+                                <span class="spinner-border
+                                             spinner-border-sm me-1">
+                                </span>
+
+                                <span>Saving...</span>
+                            }
+                            else
+                            {
+                                <span>Save Department</span>
+                            }
+
+                        </button>
+
+                        <button type="button"
+                                class="btn btn-secondary"
+                                @onclick="GoBack"
+                                disabled="@isSaving">
+
+                            Cancel
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    private CreateDesignationRequest model = new()
+    {
+        IsActive = true
+    };
+
+    private bool isSaving;
+
+    private string errorMessage = string.Empty;
+
+
+    private async Task SaveDesignation()
+    {
+        try
+        {
+            isSaving = true;
+            errorMessage = string.Empty;
+
+            await DesignationService
+                .CreateDesignationAsync(model);
+
+            Navigation.NavigateTo(
+                "/designations");
+        }
+        catch (HttpRequestException ex)
+        {
+            errorMessage = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            errorMessage =
+                $"Unable to create designation: " +
+                $"{ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo(
+            "/designations");
+    }
+}

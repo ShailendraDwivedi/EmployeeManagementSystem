@@ -1,0 +1,246 @@
+﻿@page "/employees/details/{Id:guid}"
+
+@using EmployeeManagement.Blazor.Components.Shared
+@using EmployeeManagement.Blazor.Models
+@using EmployeeManagement.Blazor.Models.EmployeeModels
+@using EmployeeManagement.Blazor.Services
+@using EmployeeManagement.Blazor.Services.Employee
+@using Microsoft.AspNetCore.Authorization
+
+@inject IEmployeeService EmployeeService
+@inject NavigationManager Navigation
+
+@attribute [Authorize]
+
+<PageTitle>Employee Details</PageTitle>
+
+<h3>Employee Details</h3>
+
+@if (isLoading)
+{
+    <LoadingSpinner Message="Loading employee details..." />
+}
+else if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <ErrorAlert Message="@errorMessage" />
+
+    <button class="btn btn-secondary"
+            @onclick="GoBack">
+        Back to Employees
+    </button>
+}
+else if (employee == null)
+{
+    <EmptyState Title="Employee Not Found"
+                Message="The requested employee does not exist." />
+    <button class="btn btn-secondary"
+            @onclick="GoBack">
+        Back to Employees
+    </button>
+}
+else
+{
+    <div class="card shadow-sm">
+
+        <div class="card-header">
+            <h5 class="mb-0">
+                Employee Information
+            </h5>
+        </div>
+
+        <div class="card-body">
+
+            <div class="row">
+
+                <div class="col-md-6 mb-3">
+                    <strong>Employee Code</strong>
+
+                    <div>
+                        @employee.EmployeeCode
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>First Name</strong>
+
+                    <div>
+                        @employee.FirstName
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Last Name</strong>
+
+                    <div>
+                        @employee.LastName
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Email</strong>
+
+                    <div>
+                        @employee.Email
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Phone</strong>
+
+                    <div>
+                        @employee.Phone
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Department</strong>
+
+                    <div>
+                        @employee.DepartmentName
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Designation</strong>
+
+                    <div>
+                        @employee.DesignationName
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Salary</strong>
+
+                    <div>
+                        @employee.Salary
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Joining Date</strong>
+
+                    <div>
+                        @employee.JoiningDate.ToString("dd-MMM-yyyy")
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Status</strong>
+
+                    <div>
+                        @if (employee.IsActive)
+                        {
+                            <span class="badge bg-success">
+                                Active
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">
+                                Inactive
+                            </span>
+                        }
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Created Date</strong>
+
+                    <div>
+                        @employee.CreatedDate.ToString(
+                        "dd-MMM-yyyy HH:mm")
+                </div>
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <strong>Updated Date</strong>
+
+                <div>
+                    @employee.UpdatedDate.ToString(
+                                        "dd-MMM-yyyy HH:mm")
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="card-footer">
+
+        <button class="btn btn-secondary me-2"
+                @onclick="GoBack">
+            Back
+        </button>
+
+        <button class="btn btn-primary"
+                @onclick="EditEmployee">
+            Edit
+        </button>
+
+    </div>
+
+</div>
+}
+
+@code {
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private EmployeeDto? employee;
+
+    private bool isLoading = true;
+
+    private string errorMessage = string.Empty;
+
+
+    protected override async Task OnAfterRenderAsync(
+        bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await LoadEmployee();
+
+        StateHasChanged();
+    }
+
+
+    private async Task LoadEmployee()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = string.Empty;
+
+            employee =
+                await EmployeeService
+                    .GetEmployeeByIdAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            errorMessage =
+                $"Unable to load employee: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo(
+            "/employees");
+    }
+
+
+    private void EditEmployee()
+    {
+        Navigation.NavigateTo(
+            $"/employees/edit/{Id}");
+    }
+}

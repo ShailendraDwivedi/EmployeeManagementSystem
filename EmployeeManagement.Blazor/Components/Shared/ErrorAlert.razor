@@ -1,0 +1,17 @@
+﻿@if (!string.IsNullOrWhiteSpace(Message))
+{
+    <div class="alert alert-danger alert-dismissible"
+         role="alert">
+
+        <strong>Error:</strong>
+        @Message
+
+    </div>
+}
+
+@code {
+
+    [Parameter]
+    public string? Message { get; set; }
+
+}

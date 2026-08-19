@@ -1,0 +1,26 @@
+﻿@using EmployeeManagement.Blazor.Services
+@using EmployeeManagement.Blazor.Services.Auth
+@inject JwtAuthenticationStateProvider AuthenticationStateProvider
+@inject IAuthService AuthService
+
+@inject NavigationManager Navigation
+
+<button class="btn btn-outline-danger"
+        @onclick="Logout">
+    Logout
+</button>
+
+@code {
+
+    private async Task Logout()
+    {
+        await AuthService.LogoutAsync();
+
+        AuthenticationStateProvider
+            .NotifyUserLogout();
+
+        Navigation.NavigateTo(
+            "/login",
+            forceLoad: true);
+    }
+}

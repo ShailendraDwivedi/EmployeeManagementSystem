@@ -1,0 +1,267 @@
+﻿@page "/designations/edit/{Id:guid}"
+
+
+@using EmployeeManagement.Blazor.Components.Shared
+@using EmployeeManagement.Blazor.Models
+@using EmployeeManagement.Blazor.Models.DesignationModels
+@using EmployeeManagement.Blazor.Services
+@using EmployeeManagement.Blazor.Services.Designation
+
+@inject IDesignationService DesignationService
+@inject NavigationManager Navigation
+
+
+
+<PageTitle>Edit Designation</PageTitle>
+
+<div class="container">
+
+    <div class="d-flex justify-content-between
+                align-items-center mb-4">
+
+        <h3>Edit Designation</h3>
+
+        <button class="btn btn-secondary"
+                @onclick="GoBack">
+
+            Back
+
+        </button>
+
+    </div>
+
+    @if (isLoading)
+    {
+        <LoadingSpinner Message="Loading designation..." />
+    }
+    else
+    {
+        <ErrorAlert Message="@errorMessage" />
+
+        @if (designation == null)
+        {
+            <EmptyState Title="Designation Not Found"
+                        Message="The requested designation does not exist." />
+
+            <button class="btn btn-secondary"
+                    @onclick="GoBack">
+
+                Back to Designations
+
+            </button>
+        }
+        else
+        {
+            <EditForm Model="@model"
+                      OnValidSubmit="@UpdateDesignation">
+
+                <DataAnnotationsValidator />
+
+                <div class="card shadow-sm">
+
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            Designation Information
+                        </h5>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row">
+
+                            <!-- Name -->
+
+                            <div class="col-md-6 mb-3">
+
+                                <label class="form-label">
+                                    Designation Name
+                                    <span class="text-danger">*</span>
+                                </label>
+
+                                <InputText class="form-control"
+                                           @bind-Value="model.Name" />
+
+                                <ValidationMessage For="@(() => model.Name)" />
+
+                            </div>
+
+                            <!-- Description -->
+
+                            <div class="col-md-6 mb-3">
+
+                                <label class="form-label">
+                                    Description
+                                </label>
+
+                                <InputTextArea class="form-control"
+                                               rows="3"
+                                               @bind-Value="model.Description" />
+
+                                <ValidationMessage For="@(() => model.Description)" />
+
+                            </div>
+
+                            <!-- Active -->
+
+                            <div class="col-md-6 mb-3">
+
+                                <div class="form-check mt-4">
+
+                                    <InputCheckbox class="form-check-input"
+                                                   @bind-Value="model.IsActive" />
+
+                                    <label class="form-check-label">
+                                        Active
+                                    </label>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="card-footer">
+
+                        <button type="submit"
+                                class="btn btn-primary me-2"
+                                disabled="@isSaving">
+
+                            @if (isSaving)
+                            {
+                                <span class="spinner-border
+                                                                     spinner-border-sm me-1">
+                                </span>
+
+                                <span>Updating...</span>
+                            }
+                            else
+                            {
+                                <span>Update Designation</span>
+                            }
+
+                        </button>
+
+                        <button type="button"
+                                class="btn btn-secondary"
+                                @onclick="GoBack"
+                                disabled="@isSaving">
+
+                            Cancel
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </EditForm>
+        }
+    }
+
+</div>
+
+@code {
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private DesignationDto? designation;
+
+    private UpdateDesignationRequest model = new();
+
+    private bool isLoading = true;
+
+    private bool isSaving;
+
+    private string errorMessage = string.Empty;
+
+
+    protected override async Task OnAfterRenderAsync(
+        bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await LoadDesignation();
+
+        StateHasChanged();
+    }
+
+
+    private async Task LoadDesignation()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = string.Empty;
+
+            designation =
+                await DesignationService
+                    .GetDesignationByIdAsync(Id);
+
+            if (designation != null)
+            {
+                model = new UpdateDesignationRequest
+                {
+                    Name =
+                        designation.Name,
+
+                    Description =
+                        designation.Description,
+
+                    IsActive =
+                        designation.IsActive
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage =
+                $"Unable to load designation: " +
+                $"{ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+
+    private async Task UpdateDesignation()
+    {
+        try
+        {
+            isSaving = true;
+            errorMessage = string.Empty;
+
+            await DesignationService
+                .UpdateDesignationAsync(
+                    Id,
+                    model);
+
+            Navigation.NavigateTo(
+                "/designations");
+        }
+        catch (Exception ex)
+        {
+            errorMessage =
+                $"Unable to update designation: " +
+                $"{ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo(
+            "/designations");
+    }
+}

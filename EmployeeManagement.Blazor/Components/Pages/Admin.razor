@@ -1,0 +1,11 @@
+﻿@page "/admin"
+
+@using EmployeeManagement.Blazor.Services
+
+@attribute [RequireRole("ADMIN")]
+
+<h3>Admin Dashboard</h3>
+
+<div class="alert alert-success">
+    Welcome Admin!
+</div>

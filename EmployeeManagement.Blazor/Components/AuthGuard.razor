@@ -1,0 +1,52 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+
+@inject NavigationManager Navigation
+
+<AuthorizeView>
+    <Authorized>
+        @ChildContent
+    </Authorized>
+
+    <NotAuthorized>
+        <p class="text-center mt-4">
+            Redirecting to login...
+        </p>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private bool _redirected;
+
+    protected override async Task OnAfterRenderAsync(
+        bool firstRender)
+    {
+        if (!firstRender || _redirected)
+        {
+            return;
+        }
+
+        if (AuthenticationState == null)
+        {
+            return;
+        }
+
+        var state =
+            await AuthenticationState;
+
+        if (state.User.Identity?.IsAuthenticated != true)
+        {
+            _redirected = true;
+
+            Navigation.NavigateTo(
+                "/login",
+                replace: true);
+        }
+    }
+}

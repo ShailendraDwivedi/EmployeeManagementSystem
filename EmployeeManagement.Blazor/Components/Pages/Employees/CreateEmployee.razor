@@ -1,0 +1,338 @@
+﻿@page "/employees/create"
+
+@using EmployeeManagement.Blazor.Models
+@using EmployeeManagement.Blazor.Models.DepartmentModels
+@using EmployeeManagement.Blazor.Models.DesignationModels
+@using EmployeeManagement.Blazor.Models.EmployeeModels
+@using EmployeeManagement.Blazor.Services
+@using EmployeeManagement.Blazor.Services.Department
+@using EmployeeManagement.Blazor.Services.Designation
+@using EmployeeManagement.Blazor.Services.Employee
+
+@attribute [RequireRole("ADMIN")]
+
+@inject IEmployeeService EmployeeService
+@inject IDepartmentService DepartmentService
+@inject IDesignationService DesignationService
+@inject NavigationManager Navigation
+
+<h3>Add Employee</h3>
+<div class="card">
+    <div class="card-body">
+        @if (isLoadingLookups)
+        {
+            <div class="alert alert-info">
+                Loading departments and designations...
+            </div>
+        }
+        else if (!string.IsNullOrWhiteSpace(lookupError))
+        {
+            <div class="alert alert-danger">
+                @lookupError
+            </div>
+        }
+        else
+        {
+            <EditForm Model="@model"
+                      OnValidSubmit="@SaveEmployee"
+                      FormName="createEmployeeForm">
+
+                <DataAnnotationsValidator />
+
+                <ValidationSummary />
+
+                @if (!string.IsNullOrWhiteSpace(errorMessage))
+                {
+                    <div class="alert alert-danger">
+                        @errorMessage
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(successMessage))
+                {
+                    <div class="alert alert-success">
+                        @successMessage
+                    </div>
+                }
+
+                <div class="row">
+
+                    <div class="col-md-6 mb-3">
+
+                        <label class="form-label">
+                            Employee Code
+                        </label>
+
+                        <InputText class="form-control"
+                                   @bind-Value="model.EmployeeCode" />
+
+                        <ValidationMessage For="@(() => model.EmployeeCode)" />
+
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+
+                        <label class="form-label">
+                            First Name
+                        </label>
+
+                        <InputText class="form-control"
+                                   @bind-Value="model.FirstName" />
+
+                        <ValidationMessage For="@(() => model.FirstName)" />
+
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+
+                        <label class="form-label">
+                            Last Name
+                        </label>
+
+                        <InputText class="form-control"
+                                   @bind-Value="model.LastName" />
+
+                        <ValidationMessage For="@(() => model.LastName)" />
+
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+
+                        <label class="form-label">
+                            Email
+                        </label>
+
+                        <InputText class="form-control"
+                                   @bind-Value="model.Email" />
+
+                        <ValidationMessage For="@(() => model.Email)" />
+
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+
+                        <label class="form-label">
+                            Phone Number
+                        </label>
+
+                        <InputText class="form-control"
+                                   @bind-Value="model.Phone" />
+
+                        <ValidationMessage For="@(() => model.Phone)" />
+
+                    </div>
+                    <div class="col-md-6 mb-3">
+
+                        <label class="form-label">
+                            Salary
+                        </label>
+
+                        <InputNumber class="form-control"
+                                     @bind-Value="model.Salary" />
+
+                        <ValidationMessage For="@(() => model.Salary)" />
+
+
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+
+                        <label class="form-label">
+                            Department <span class="text-danger">*</span>
+                        </label>
+
+                        <InputSelect class="form-select"
+                                     @bind-Value="model.DepartmentId">
+
+                            <option value="@Guid.Empty">
+                                -- Select Department --
+                            </option>
+
+                            @foreach (var department in departments)
+                            {
+                                <option value="@department.Id">
+                                    @department.Name
+                                </option>
+                            }
+
+                        </InputSelect>
+
+                        <ValidationMessage For="@(() => model.DepartmentId)" />
+
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+
+                        <label class="form-label">
+                            Designation <span class="text-danger">*</span>
+                        </label>
+
+                        <InputSelect class="form-select"
+                                     @bind-Value="model.DesignationId">
+
+                            <option value="@Guid.Empty">
+                                -- Select Designation --
+                            </option>
+
+                            @foreach (var designation in designations)
+                            {
+                                <option value="@designation.Id">
+                                    @designation.Name
+                                </option>
+                            }
+
+                    </InputSelect>
+
+                    <ValidationMessage For="@(() => model.DesignationId)" />
+
+                </div>
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+                        Joining Date
+                    </label>
+
+                    <input type="date" class="form-control"
+                           @bind="model.JoiningDate" />
+
+                    <ValidationMessage For="@(() => model.JoiningDate)" />
+
+                </div>
+
+                <div class="col-md-6 mb-3">
+
+                    <div class="form-check mt-4">
+
+                        <InputCheckbox class="form-check-input"
+                                       @bind-Value="model.IsActive" />
+
+                        <label class="form-check-label">
+                            Active
+                        </label>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="mt-3">
+
+                <button type="submit"
+                        class="btn btn-primary me-2"
+                        disabled="@isSaving">
+
+                    @(isSaving
+                                        ? "Saving..."
+                                        : "Save Employee")
+
+                </button>
+
+                    <button type="button"
+                            class="btn btn-secondary"
+                            @onclick="Cancel">
+
+                        Cancel
+
+                    </button>
+
+                </div>
+
+            </EditForm>
+        }
+    </div>
+
+</div>
+
+@code {
+
+    private CreateEmployeeRequest model = new();
+
+    private string departmentIdText = string.Empty;
+    private string designationIdText = string.Empty;
+
+    private bool isSaving;
+
+    private string errorMessage = string.Empty;
+
+    private string successMessage = string.Empty;
+
+    private List<DepartmentDto> departments = new();
+
+    private List<DesignationDto> designations = new();
+
+    private bool isLoadingLookups;
+
+    private string? lookupError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLookups();
+    }
+    private async Task LoadLookups()
+    {
+        try
+        {
+            isLoadingLookups = true;
+            lookupError = null;
+
+            var departmentResult =
+                await DepartmentService.GetDepartmentsAsync(
+                    pageNumber: 1,
+                    pageSize: 100);
+
+            departments =
+                departmentResult.Items;
+
+            var designationResult =
+                await DesignationService.GetDesignationsAsync(
+                    pageNumber: 1,
+                    pageSize: 100);
+
+            designations =
+                designationResult.Items;
+        }
+        catch (Exception ex)
+        {
+            lookupError = ex.Message;
+        }
+        finally
+        {
+            isLoadingLookups = false;
+        }
+    }
+
+    private async Task SaveEmployee()
+    {
+        try
+        {
+            isSaving = true;
+            errorMessage = string.Empty;
+            successMessage = string.Empty;
+
+            await EmployeeService
+                .CreateEmployeeAsync(model);
+
+            successMessage =
+                "Employee created successfully.";
+
+            Navigation.NavigateTo(
+                "/employees");
+        }
+        catch (Exception ex)
+        {
+            errorMessage =
+                $"Unable to create employee: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo(
+            "/employees");
+    }
+}

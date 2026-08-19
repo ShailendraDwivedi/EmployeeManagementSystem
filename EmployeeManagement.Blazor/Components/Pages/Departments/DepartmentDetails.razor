@@ -1,0 +1,291 @@
+﻿@page "/departments/details/{Id:guid}"
+
+@using EmployeeManagement.Blazor.Models
+@using EmployeeManagement.Blazor.Models.AuthModels
+@using EmployeeManagement.Blazor.Models.DepartmentModels
+@using EmployeeManagement.Blazor.Services
+@using EmployeeManagement.Blazor.Services.Department
+
+
+@inject IDepartmentService DepartmentService
+@inject NavigationManager Navigation
+
+
+<PageTitle>Department Details</PageTitle>
+
+<div class="container">
+
+    <div class="d-flex justify-content-between
+                align-items-center mb-4">
+
+        <h3>Department Details</h3>
+
+        <button class="btn btn-secondary"
+                @onclick="GoBack">
+
+            Back
+
+        </button>
+
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center mt-5">
+
+            <div class="spinner-border"
+                 role="status">
+            </div>
+
+            <div class="mt-2">
+                Loading department...
+            </div>
+
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">
+            @errorMessage
+        </div>
+
+        <button class="btn btn-secondary"
+                @onclick="GoBack">
+
+            Back to Departments
+
+        </button>
+    }
+    else if (department == null)
+    {
+        <div class="alert alert-warning">
+            Department not found.
+        </div>
+
+        <button class="btn btn-secondary"
+                @onclick="GoBack">
+
+            Back to Departments
+
+        </button>
+    }
+    else
+    {
+        <div class="card shadow-sm">
+
+            <div class="card-header d-flex
+                                    justify-content-between
+                                    align-items-center">
+
+                <h5 class="mb-0">
+                    @department.Name
+                </h5>
+
+                @if (department.IsActive)
+                {
+                    <span class="badge bg-success">
+                        Active
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary">
+                        Inactive
+                    </span>
+                }
+
+            </div>
+
+            <div class="card-body">
+
+                <div class="row">
+
+                    <!-- Department Name -->
+
+                    <div class="col-md-6 mb-4">
+
+                        <label class="fw-bold">
+                            Department Name
+                        </label>
+
+                        <div>
+                            @department.Name
+                        </div>
+
+                    </div>
+
+
+                    <!-- Status -->
+
+                    <div class="col-md-6 mb-4">
+
+                        <label class="fw-bold">
+                            Status
+                        </label>
+
+                        <div>
+                            @if (department.IsActive)
+                            {
+                                <span class="badge bg-success">
+                                    Active
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">
+                                    Inactive
+                                </span>
+                            }
+                    </div>
+
+                </div>
+
+
+                <!-- Description -->
+
+                <div class="col-md-12 mb-4">
+
+                    <label class="fw-bold">
+                        Description
+                    </label>
+
+                    <div class="border rounded p-3 bg-light">
+
+                        @(string.IsNullOrWhiteSpace(
+                                                department.Description)
+                                                ? "No description available."
+                                                : department.Description)
+
+                    </div>
+
+                    </div>
+
+
+                    <!-- Created Date -->
+
+                    <div class="col-md-6 mb-4">
+
+                        <label class="fw-bold">
+                            Created Date
+                        </label>
+
+                        <div>
+                            @department.CreatedDate.ToLocalTime().ToString("dd-MM-yyyy HH:mm")
+                        </div>
+
+                    </div>
+
+
+                    <!-- Updated Date -->
+
+                    <div class="col-md-6 mb-4">
+
+                        <label class="fw-bold">
+                            Updated Date
+                        </label>
+
+                        <div>
+                        @if (department.UpdatedDate.HasValue)
+                            {
+                                @department.UpdatedDate.Value.ToLocalTime().ToString("dd-MM-yyyy HH:mm")
+                            }
+                            else
+                            {
+                                <span>
+                                    Not updated
+                                </span>
+                            }
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="card-footer">
+
+                <button class="btn btn-warning me-2"
+                        @onclick="EditDepartment">
+
+                    Edit
+
+                </button>
+
+                <button class="btn btn-secondary"
+                        @onclick="GoBack">
+
+                    Back
+
+                </button>
+
+            </div>
+
+        </div>
+    }
+
+</div>
+
+@code {
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private DepartmentDto? department;
+
+    private bool isLoading = true;
+
+    private string errorMessage = string.Empty;
+
+
+    protected override async Task OnAfterRenderAsync(
+        bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await LoadDepartment();
+
+        StateHasChanged();
+    }
+
+
+    private async Task LoadDepartment()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = string.Empty;
+
+            department =
+                await DepartmentService
+                    .GetDepartmentByIdAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            errorMessage =
+                $"Unable to load department: " +
+                $"{ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+
+    private void EditDepartment()
+    {
+        Navigation.NavigateTo(
+            $"/departments/edit/{Id}");
+    }
+
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo(
+            "/departments");
+    }
+}

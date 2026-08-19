@@ -1,0 +1,38 @@
+﻿namespace EmployeeManagement.Blazor.Models.EmployeeModels;
+
+public class EmployeeDto
+{
+    public Guid Id { get; set; }
+
+    public string EmployeeCode { get; set; } = string.Empty;
+
+    public string FirstName { get; set; } = string.Empty;
+
+    public string LastName { get; set; } = string.Empty;
+
+    public string Email { get; set; } = string.Empty;
+
+    public string Phone { get; set; } = string.Empty;
+
+    public DateTime DOB { get; set; }
+
+    public string Gender { get; set; } = string.Empty;
+
+    public string Address { get; set; } = string.Empty;
+
+    public decimal Salary { get; set; }
+
+    public Guid DepartmentId { get; set; }
+
+    public string DepartmentName { get; set; } = string.Empty;
+
+    public Guid DesignationId { get; set; }
+
+    public string DesignationName { get; set; } = string.Empty;
+
+    public DateTime JoiningDate { get; set; }
+    public DateTime CreatedDate { get; set; }
+    public DateTime UpdatedDate { get; set; }
+
+    public bool IsActive { get; set; }
+}

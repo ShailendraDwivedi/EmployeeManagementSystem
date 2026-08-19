@@ -1,0 +1,268 @@
+﻿@page "/departments/edit/{Id:guid}"
+
+
+@using EmployeeManagement.Blazor.Components.Shared
+@using EmployeeManagement.Blazor.Models
+@using EmployeeManagement.Blazor.Models.AuthModels
+@using EmployeeManagement.Blazor.Models.DepartmentModels
+@using EmployeeManagement.Blazor.Services
+@using EmployeeManagement.Blazor.Services.Department
+
+@inject IDepartmentService DepartmentService
+@inject NavigationManager Navigation
+
+
+
+<PageTitle>Edit Department</PageTitle>
+
+<div class="container">
+
+    <div class="d-flex justify-content-between
+                align-items-center mb-4">
+
+        <h3>Edit Department</h3>
+
+        <button class="btn btn-secondary"
+                @onclick="GoBack">
+
+            Back
+
+        </button>
+
+    </div>
+
+    @if (isLoading)
+    {
+        <LoadingSpinner Message="Loading department..." />
+    }
+    else
+    {
+        <ErrorAlert Message="@errorMessage" />
+
+        @if (department == null)
+        {
+            <EmptyState Title="Department Not Found"
+                        Message="The requested department does not exist." />
+
+            <button class="btn btn-secondary"
+                    @onclick="GoBack">
+
+                Back to Departments
+
+            </button>
+        }
+        else
+        {
+            <EditForm Model="@model"
+                      OnValidSubmit="@UpdateDepartment">
+
+                <DataAnnotationsValidator />
+
+                <div class="card shadow-sm">
+
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            Department Information
+                        </h5>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row">
+
+                            <!-- Name -->
+
+                            <div class="col-md-6 mb-3">
+
+                                <label class="form-label">
+                                    Department Name
+                                    <span class="text-danger">*</span>
+                                </label>
+
+                                <InputText class="form-control"
+                                           @bind-Value="model.Name" />
+
+                                <ValidationMessage For="@(() => model.Name)" />
+
+                            </div>
+
+                            <!-- Description -->
+
+                            <div class="col-md-6 mb-3">
+
+                                <label class="form-label">
+                                    Description
+                                </label>
+
+                                <InputTextArea class="form-control"
+                                               rows="3"
+                                               @bind-Value="model.Description" />
+
+                                <ValidationMessage For="@(() => model.Description)" />
+
+                            </div>
+
+                            <!-- Active -->
+
+                            <div class="col-md-6 mb-3">
+
+                                <div class="form-check mt-4">
+
+                                    <InputCheckbox class="form-check-input"
+                                                   @bind-Value="model.IsActive" />
+
+                                    <label class="form-check-label">
+                                        Active
+                                    </label>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="card-footer">
+
+                        <button type="submit"
+                                class="btn btn-primary me-2"
+                                disabled="@isSaving">
+
+                            @if (isSaving)
+                            {
+                                <span class="spinner-border
+                                                         spinner-border-sm me-1">
+                                </span>
+
+                                <span>Updating...</span>
+                            }
+                            else
+                            {
+                                <span>Update Department</span>
+                            }
+
+                        </button>
+
+                        <button type="button"
+                                class="btn btn-secondary"
+                                @onclick="GoBack"
+                                disabled="@isSaving">
+
+                            Cancel
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </EditForm>
+        }
+    }
+
+</div>
+
+@code {
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private DepartmentDto? department;
+
+    private UpdateDepartmentRequest model = new();
+
+    private bool isLoading = true;
+
+    private bool isSaving;
+
+    private string errorMessage = string.Empty;
+
+
+    protected override async Task OnAfterRenderAsync(
+        bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await LoadDepartment();
+
+        StateHasChanged();
+    }
+
+
+    private async Task LoadDepartment()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = string.Empty;
+
+            department =
+                await DepartmentService
+                    .GetDepartmentByIdAsync(Id);
+
+            if (department != null)
+            {
+                model = new UpdateDepartmentRequest
+                {
+                    Name =
+                        department.Name,
+
+                    Description =
+                        department.Description,
+
+                    IsActive =
+                        department.IsActive
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage =
+                $"Unable to load department: " +
+                $"{ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+
+    private async Task UpdateDepartment()
+    {
+        try
+        {
+            isSaving = true;
+            errorMessage = string.Empty;
+
+            await DepartmentService
+                .UpdateDepartmentAsync(
+                    Id,
+                    model);
+
+            Navigation.NavigateTo(
+                "/departments");
+        }
+        catch (Exception ex)
+        {
+            errorMessage =
+                $"Unable to update department: " +
+                $"{ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo(
+            "/departments");
+    }
+}

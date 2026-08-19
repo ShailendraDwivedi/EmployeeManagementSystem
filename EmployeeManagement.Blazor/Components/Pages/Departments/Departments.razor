@@ -1,0 +1,415 @@
+﻿@page "/departments"
+
+@rendermode InteractiveServer
+@using EmployeeManagement.Blazor.Components.Shared
+@using EmployeeManagement.Blazor.Models
+@using EmployeeManagement.Blazor.Models.AuthModels
+@using EmployeeManagement.Blazor.Models.DepartmentModels
+@using EmployeeManagement.Blazor.Services
+@using EmployeeManagement.Blazor.Services.Department
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject IDepartmentService DepartmentService
+@inject NavigationManager Navigation
+
+@inject IJSRuntime JS
+
+
+<PageTitle>Departments</PageTitle>
+
+<div class="d-flex justify-content-between
+            align-items-center mb-3">
+
+    <h3>Departments</h3>
+
+    <AuthorizeView Roles="ADMIN"
+                   Context="createContext">
+
+        <button class="btn btn-primary"
+                @onclick="CreateDepartment">
+
+            Add Department
+
+        </button>
+
+    </AuthorizeView>
+
+</div>
+
+<ErrorAlert Message="@errorMessage" />
+
+<div class="row mb-3">
+
+    <div class="col-md-6">
+
+        <label class="form-label">
+            Search Department
+        </label>
+
+        <input class="form-control"
+               placeholder="Search department..."
+               @bind="searchText"
+               @bind:event="oninput" />
+
+    </div>
+
+    <div class="col-md-2">
+
+        <label class="form-label">
+            Page Size
+        </label>
+
+        <select class="form-select"
+                value="@pageSize"
+                @onchange="PageSizeChanged">
+
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+
+        </select>
+
+    </div>
+
+    <div class="col-md-4 d-flex
+                align-items-end">
+
+        <button class="btn btn-primary me-2"
+                @onclick="SearchDepartments">
+
+            Search
+
+        </button>
+
+        <button class="btn btn-secondary"
+                @onclick="ClearSearch">
+
+            Clear
+
+        </button>
+
+    </div>
+
+</div>
+
+@if (isLoading)
+{
+    <LoadingSpinner Message="Loading departments..." />
+}
+else if (departmentResult.Items.Any())
+{
+    <table class="table table-bordered
+                              table-striped">
+
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            @foreach (var department
+                    in departmentResult.Items)
+            {
+                <tr>
+
+                    <td>
+                        @department.Name
+                    </td>
+
+                    <td>
+                        @department.Description
+                    </td>
+
+                    <td>
+
+                        @if (department.IsActive == true)
+                        {
+                            <span class="badge bg-success">
+                                Active
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">
+                                Inactive
+                            </span>
+                        }
+
+                    </td>
+
+                    <td>
+
+                        <button class="btn btn-sm btn-info me-1"
+                                @onclick="() =>
+                                ViewDepartment(department.Id)">
+
+                    View
+
+                        </button>
+
+                        <AuthorizeView Roles="ADMIN"
+                                       Context="adminContext">
+
+                            <button class="btn btn-sm btn-warning me-1"
+                                    @onclick="() =>
+                                                                                                                                EditDepartment(
+                                                                                                                                    department.Id)">
+
+                        Edit
+
+                            </button>
+
+                            <button class="btn btn-sm btn-danger"
+                                    @onclick="() =>
+                                                                                                                                                            ConfirmDelete(
+                                                                                                                                    department.Id)">
+
+                        Delete
+
+                            </button>
+
+                        </AuthorizeView>
+
+                    </td>
+
+                </tr>
+                }
+
+        </tbody>
+
+    </table>
+}
+else
+{
+    <EmptyState Title="No Departments Found"
+                Message="No departments match your search." />
+}
+
+@if (departmentResult.TotalPages > 1)
+{
+    <div class="d-flex
+                            justify-content-between
+                            align-items-center mt-3">
+
+        <div>
+            Showing
+            @(
+                    departmentResult.TotalCount == 0
+                    ? 0
+                    : ((currentPage - 1) * pageSize) + 1
+                    )
+            -
+            @(
+                    Math.Min(
+                    currentPage * pageSize,
+                    departmentResult.TotalCount)
+                    )
+        of
+        @departmentResult.TotalCount
+    </div>
+
+        <div>
+
+            <button class="btn btn-outline-primary me-2"
+                    disabled="@(currentPage <= 1)"
+                    @onclick="PreviousPage">
+
+                Previous
+
+            </button>
+
+            <span class="mx-2">
+                Page @currentPage
+                of @departmentResult.TotalPages
+            </span>
+
+            <button class="btn btn-outline-primary"
+                    disabled="@(currentPage >=
+                                                                            departmentResult.TotalPages)"
+                @onclick="NextPage">
+
+                Next
+
+            </button>
+
+        </div>
+
+    </div>
+                }
+
+
+@code {
+
+    private PagedResult<DepartmentDto>
+        departmentResult = new();
+
+    private bool isLoading = true;
+
+    private string errorMessage = string.Empty;
+
+    private string searchText = string.Empty;
+
+    private int currentPage = 1;
+
+    private int pageSize = 10;
+
+
+    protected override async Task OnAfterRenderAsync(
+        bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await LoadDepartments();
+
+        StateHasChanged();
+    }
+
+
+    private async Task LoadDepartments()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = string.Empty;
+
+            departmentResult =
+                await DepartmentService
+                    .GetDepartmentsAsync(
+                        currentPage,
+                        pageSize,
+                        searchText);
+        }
+        catch (Exception ex)
+        {
+            errorMessage =
+                $"Unable to load departments: " +
+                $"{ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+
+    private async Task SearchDepartments()
+    {
+        currentPage = 1;
+
+        await LoadDepartments();
+    }
+
+
+    private async Task ClearSearch()
+    {
+        searchText = string.Empty;
+
+        currentPage = 1;
+
+        await LoadDepartments();
+    }
+
+
+    private async Task PreviousPage()
+    {
+        if (currentPage <= 1)
+        {
+            return;
+        }
+
+        currentPage--;
+
+        await LoadDepartments();
+    }
+
+
+    private async Task NextPage()
+    {
+        if (currentPage >=
+            departmentResult.TotalPages)
+        {
+            return;
+        }
+
+        currentPage++;
+
+        await LoadDepartments();
+    }
+
+
+    private async Task PageSizeChanged(
+        ChangeEventArgs e)
+    {
+        if (int.TryParse(
+            e.Value?.ToString(),
+            out var newPageSize))
+        {
+            pageSize = newPageSize;
+
+            currentPage = 1;
+
+            await LoadDepartments();
+        }
+    }
+
+
+    private void CreateDepartment()
+    {
+        Navigation.NavigateTo(
+            "/departments/create");
+    }
+
+
+    private void ViewDepartment(Guid id)
+    {
+        Navigation.NavigateTo(
+            $"/departments/details/{id}");
+    }
+
+
+    private void EditDepartment(Guid id)
+    {
+        Navigation.NavigateTo(
+            $"/departments/edit/{id}");
+    }
+
+    private async Task ConfirmDelete(Guid id)
+    {
+        var confirmed =
+            await JS.InvokeAsync<bool>(
+                "confirm",
+                "Are you sure you want to delete this department?");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        await DeleteDepartment(id);
+    }
+    private async Task DeleteDepartment(Guid id)
+    {
+        try
+        {
+            errorMessage = string.Empty;
+
+            await DepartmentService
+                .DeleteDepartmentAsync(id);
+
+            await LoadDepartments();
+        }
+        catch (Exception ex)
+        {
+            errorMessage =
+                $"Unable to delete department: {ex.Message}";
+        }
+    }
+}

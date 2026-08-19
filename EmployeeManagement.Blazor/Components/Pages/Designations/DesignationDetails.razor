@@ -1,0 +1,288 @@
+﻿@page "/designations/details/{Id:guid}"
+
+@using EmployeeManagement.Blazor.Models
+@using EmployeeManagement.Blazor.Models.DesignationModels
+@using EmployeeManagement.Blazor.Services
+@using EmployeeManagement.Blazor.Services.Designation
+@inject IDesignationService DesignationService
+@inject NavigationManager Navigation
+
+
+<PageTitle>Designation Details</PageTitle>
+
+<div class="container">
+
+    <div class="d-flex justify-content-between
+                align-items-center mb-4">
+
+        <h3>Designation Details</h3>
+
+        <button class="btn btn-secondary"
+                @onclick="GoBack">
+
+            Back
+
+        </button>
+
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center mt-5">
+
+            <div class="spinner-border"
+                 role="status">
+            </div>
+
+            <div class="mt-2">
+                Loading designation...
+            </div>
+
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">
+            @errorMessage
+        </div>
+
+        <button class="btn btn-secondary"
+                @onclick="GoBack">
+
+            Back to Designations
+
+        </button>
+    }
+    else if (designation == null)
+    {
+        <div class="alert alert-warning">
+            Designation not found.
+        </div>
+
+        <button class="btn btn-secondary"
+                @onclick="GoBack">
+
+            Back to Designations
+
+        </button>
+    }
+    else
+    {
+        <div class="card shadow-sm">
+
+            <div class="card-header d-flex
+                                        justify-content-between
+                                        align-items-center">
+
+                <h5 class="mb-0">
+                    @designation.Name
+                </h5>
+
+                @if (designation.IsActive)
+                {
+                    <span class="badge bg-success">
+                        Active
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary">
+                        Inactive
+                    </span>
+                }
+
+            </div>
+
+            <div class="card-body">
+
+                <div class="row">
+
+                    <!-- Designation Name -->
+
+                    <div class="col-md-6 mb-4">
+
+                        <label class="fw-bold">
+                            Designation Name
+                        </label>
+
+                        <div>
+                            @designation.Name
+                        </div>
+
+                    </div>
+
+
+                    <!-- Status -->
+
+                    <div class="col-md-6 mb-4">
+
+                        <label class="fw-bold">
+                            Status
+                        </label>
+
+                        <div>
+                            @if (designation.IsActive)
+                            {
+                                <span class="badge bg-success">
+                                    Active
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">
+                                    Inactive
+                                </span>
+                            }
+                    </div>
+
+                </div>
+
+
+                <!-- Description -->
+
+                <div class="col-md-12 mb-4">
+
+                    <label class="fw-bold">
+                        Description
+                    </label>
+
+                    <div class="border rounded p-3 bg-light">
+
+                        @(string.IsNullOrWhiteSpace(
+                                                designation.Description)
+                                                ? "No description available."
+                                                : designation.Description)
+
+                    </div>
+
+                    </div>
+
+
+                    <!-- Created Date -->
+
+                    <div class="col-md-6 mb-4">
+
+                        <label class="fw-bold">
+                            Created Date
+                        </label>
+
+                        <div>
+                            @designation.CreatedDate.ToLocalTime().ToString("dd-MM-yyyy HH:mm")
+                        </div>
+
+                    </div>
+
+
+                    <!-- Updated Date -->
+
+                    <div class="col-md-6 mb-4">
+
+                        <label class="fw-bold">
+                            Updated Date
+                        </label>
+
+                        <div>
+                        @if (designation.UpdatedDate.HasValue)
+                            {
+                                @designation.UpdatedDate.Value.ToLocalTime().ToString("dd-MM-yyyy HH:mm")
+                            }
+                            else
+                            {
+                                <span>
+                                    Not updated
+                                </span>
+                            }
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="card-footer">
+
+                <button class="btn btn-warning me-2"
+                        @onclick="EditDesignation">
+
+                    Edit
+
+                </button>
+
+                <button class="btn btn-secondary"
+                        @onclick="GoBack">
+
+                    Back
+
+                </button>
+
+            </div>
+
+        </div>
+    }
+
+</div>
+
+@code {
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private DesignationDto? designation;
+
+    private bool isLoading = true;
+
+    private string errorMessage = string.Empty;
+
+
+    protected override async Task OnAfterRenderAsync(
+        bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await LoadDesignation();
+
+        StateHasChanged();
+    }
+
+
+    private async Task LoadDesignation()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = string.Empty;
+
+            designation =
+                await DesignationService
+                    .GetDesignationByIdAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            errorMessage =
+                $"Unable to load designation: " +
+                $"{ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+
+    private void EditDesignation()
+    {
+        Navigation.NavigateTo(
+            $"/designations/edit/{Id}");
+    }
+
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo(
+            "/designations");
+    }
+}

@@ -1,0 +1,18 @@
+﻿@using EmployeeManagement.Blazor.Services
+
+@inject JwtAuthenticationStateProvider AuthenticationStateProvider
+
+@code {
+
+    protected override async Task OnAfterRenderAsync(
+        bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await AuthenticationStateProvider
+            .InitializeAsync();
+    }
+}

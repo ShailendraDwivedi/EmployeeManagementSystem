@@ -1,0 +1,114 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using EmployeeManagement.Blazor.Services
+
+@inject NavigationManager Navigation
+
+@if (isAuthorized)
+{
+    <RouteView RouteData="RouteData"
+               DefaultLayout="DefaultLayout" />
+}
+else if (checkingAuthorization)
+{
+    <div class="text-center mt-4">
+        <p>Checking authorization...</p>
+    </div>
+}
+else if (isAuthenticated)
+{
+    <div class="alert alert-danger m-3">
+        You are not authorized to access this page.
+    </div>
+}
+
+@code {
+
+    [Parameter]
+    public RouteData RouteData { get; set; } = default!;
+
+    [Parameter]
+    public Type? DefaultLayout { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    private bool isAuthorized;
+    private bool isAuthenticated;
+    private bool checkingAuthorization = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        checkingAuthorization = true;
+
+        if (AuthenticationState == null)
+        {
+            isAuthorized = false;
+            isAuthenticated = false;
+            checkingAuthorization = false;
+            return;
+        }
+
+        var authState = await AuthenticationState;
+
+        var user = authState.User;
+
+        isAuthenticated =
+            user.Identity?.IsAuthenticated == true;
+
+        var requiresAuthentication =
+            RouteData.PageType
+                .GetCustomAttributes(
+                    typeof(RequireAuthenticationAttribute),
+                    inherit: true)
+                .Any();
+
+        var roleAttribute =
+            RouteData.PageType
+                .GetCustomAttributes(
+                    typeof(RequireRoleAttribute),
+                    inherit: true)
+                .FirstOrDefault()
+                as RequireRoleAttribute;
+
+        // Public page
+        if (!requiresAuthentication &&
+            roleAttribute == null)
+        {
+            isAuthorized = true;
+        }
+        // Authentication required
+        else if (!isAuthenticated)
+        {
+            isAuthorized = false;
+        }
+        // Role required
+        else if (roleAttribute != null &&
+                 !user.IsInRole(roleAttribute.Role))
+        {
+            isAuthorized = false;
+        }
+        else
+        {
+            isAuthorized = true;
+        }
+
+        checkingAuthorization = false;
+    }
+
+    protected override void OnAfterRender(
+        bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        if (!isAuthenticated &&
+            !isAuthorized)
+        {
+            Navigation.NavigateTo(
+                "/login",
+                replace: true);
+        }
+    }
+}

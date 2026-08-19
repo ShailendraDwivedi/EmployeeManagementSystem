@@ -1,0 +1,464 @@
+﻿@page "/employees"
+@rendermode InteractiveServer
+
+@using EmployeeManagement.Blazor.Components.Shared
+@using EmployeeManagement.Blazor.Models
+@using EmployeeManagement.Blazor.Models.EmployeeModels
+@using EmployeeManagement.Blazor.Services
+@using EmployeeManagement.Blazor.Services.Employee
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [RequireAuthentication]
+
+@inject IEmployeeService EmployeeService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+
+
+<PageTitle>Employees</PageTitle>
+
+
+<div class="d-flex justify-content-between mb-3">
+    <h3>Employee Management</h3>
+    <AuthorizeView Roles="ADMIN"
+                   Context="createContext">
+        <button class="btn btn-primary"
+                @onclick="AddEmployee">
+            Add Employee
+        </button>
+    </AuthorizeView>
+</div>
+<ErrorAlert Message="@errorMessage" />
+
+@if (isLoading)
+{
+    <LoadingSpinner Message="Loading employees..." />
+}
+else
+{
+    <!-- Search -->
+    <div class="row mb-3">
+
+        <div class="col-md-6">
+
+            <label class="form-label">
+                Search Employee
+            </label>
+
+            <input class="form-control"
+                   placeholder="Search by name, email or employee code"
+                   @bind="searchText"
+                   @bind:event="oninput" />
+
+        </div>
+
+        <div class="col-md-2">
+
+            <label class="form-label">
+                Page Size
+            </label>
+
+            <select class="form-select"
+                    @bind="pageSize">
+
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+
+            </select>
+
+        </div>
+
+        <div class="col-md-4 d-flex align-items-end">
+
+            <button class="btn btn-primary me-2"
+                    @onclick="SearchEmployees">
+
+                Search
+
+            </button>
+
+            <button class="btn btn-secondary"
+                    @onclick="ClearSearch">
+
+                Clear
+
+            </button>
+
+        </div>
+
+    </div>
+}
+
+@if (employeeResult.Items.Any())
+{
+    <table class="table table-bordered table-striped">
+
+        <thead>
+            <tr>
+                <th>Emp Code</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Department</th>
+                <th>Designation</th>
+                <th>Salary</th>
+                <th>Joining date</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @if (employeeResult.Items.Count == 0)
+            {
+                <tr>
+                    <td colspan="9"
+                        class="text-center">
+
+                        No employees found.
+
+                    </td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var employee in employeeResult.Items)
+                {
+                    <tr>
+
+                        <td>
+                            @employee.EmployeeCode
+                        </td>
+
+                        <td>
+                            @employee.FirstName
+                            @employee.LastName
+                        </td>
+
+                        <td>
+                            @employee.Email
+                        </td>
+
+                        <td>
+                            @employee.Phone
+                        </td>
+
+                        <td>
+                            @employee.DepartmentName
+                        </td>
+
+                        <td>
+                            @employee.DesignationName
+                        </td>
+
+                        <td>
+                            @employee.Salary
+                        </td>
+                        <td>
+                            @employee.JoiningDate.ToString(
+                            "dd-MMM-yyyy")
+            </td>
+            <td>
+                <button class="btn btn-sm btn-info me-1"
+                        @onclick="() => ViewEmployee(employee.Id)">
+                    View
+                </button>
+                <AuthorizeView Roles="ADMIN" Context="adminContext">
+
+                    <button class="btn btn-sm btn-warning me-1"
+                            @onclick="() => EditEmployee(employee.Id)">
+                        Edit
+                    </button>
+
+                    <button class="btn btn-sm btn-danger"
+                            @onclick="() => ConfirmDelete(employee)">
+                        Delete
+                    </button>
+
+                </AuthorizeView>
+
+            </td>
+
+        </tr>
+                }
+            }
+        </tbody>
+
+    </table>
+}
+else if (!isLoading)
+{
+    <EmptyState Title="No Employees Found"
+                Message="There are no employees matching your search." />
+}
+@if (employeeResult.TotalPages > 1)
+{
+    <div class="d-flex justify-content-between align-items-center mt-3">
+
+        <div>
+            Showing
+            @(
+                    employeeResult.TotalCount == 0
+                    ? 0
+                    : ((currentPage - 1) * pageSize) + 1
+                    )
+            -
+            @(
+                    Math.Min(
+                    currentPage * pageSize,
+                    employeeResult.TotalCount)
+                    )
+        of
+        @employeeResult.TotalCount
+    </div>
+
+        <div>
+
+            <button class="btn btn-outline-primary me-2"
+                    disabled="@(currentPage <= 1)"
+                    @onclick="PreviousPage">
+
+                Previous
+
+            </button>
+
+            <span class="mx-2">
+                Page @currentPage
+                of @employeeResult.TotalPages
+            </span>
+
+            <button class="btn btn-outline-primary"
+                    disabled="@(currentPage >= employeeResult.TotalPages)"
+                    @onclick="NextPage">
+
+                Next
+
+            </button>
+
+        </div>
+
+    </div>
+}
+@if (showDeleteDialog)
+{
+    <div class="modal-backdrop fade show"></div>
+
+    <div class="modal fade show d-block"
+         tabindex="-1">
+
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        Confirm Delete
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            @onclick="CancelDelete">
+                    </button>
+                </div>
+
+                <div class="modal-body">
+
+                    <p>
+                        Are you sure you want to delete
+                        <strong>
+                            @employeeToDelete?.FirstName
+                            @employeeToDelete?.LastName
+                        </strong>?
+                    </p>
+
+                    <button type="button"
+                            class="btn btn-danger"
+                            disabled="@isLoading"
+                            @onclick="DeleteEmployee">
+                        @(isLoading ? "Deleting..." : "Delete")
+                    </button>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-secondary"
+                            @onclick="CancelDelete">
+                        Cancel
+                    </button>
+
+                    <button type="button"
+                            class="btn btn-danger"
+                            @onclick="DeleteEmployee">
+                        Delete
+                    </button>
+
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+}
+
+
+
+@code {
+
+    private PagedResult<EmployeeDto> employeeResult = new();
+
+    private bool isLoading = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+    private string searchText = string.Empty;
+    private int currentPage = 1;
+    private int pageSize = 10;
+    //private Guid? deletingEmployeeId;
+    private bool showDeleteDialog = false;
+    private EmployeeDto? employeeToDelete;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+
+        if (!firstRender || isLoading)
+        {
+            return;
+        }
+
+        await LoadEmployees();
+
+        StateHasChanged();
+
+    }
+
+    private async Task LoadEmployees()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = string.Empty;
+
+            employeeResult = await EmployeeService.GetEmployeesAsync(currentPage, pageSize, searchText);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Unable to load employees: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+    private async Task SearchEmployees()
+    {
+        currentPage = 1;
+
+        await LoadEmployees();
+    }
+    private async Task ClearSearch()
+    {
+        searchText = string.Empty;
+
+        currentPage = 1;
+
+        await LoadEmployees();
+    }
+    private async Task PreviousPage()
+    {
+        if (currentPage <= 1)
+        {
+            return;
+        }
+
+        currentPage--;
+
+        await LoadEmployees();
+    }
+    private async Task NextPage()
+    {
+        if (currentPage >= employeeResult.TotalPages)
+        {
+            return;
+        }
+
+        currentPage++;
+
+        await LoadEmployees();
+    }
+    private async Task PageSizeChanged(
+    ChangeEventArgs e)
+    {
+        if (int.TryParse(
+            e.Value?.ToString(),
+            out var newPageSize))
+        {
+            pageSize = newPageSize;
+
+            currentPage = 1;
+
+            await LoadEmployees();
+        }
+    }
+    private void AddEmployee()
+    {
+        Navigation.NavigateTo("/employees/create");
+    }
+
+    private void ViewEmployee(Guid id)
+    {
+        Navigation.NavigateTo($"/employees/details/{id}");
+    }
+
+    private void EditEmployee(Guid id)
+    {
+        Navigation.NavigateTo($"/employees/edit/{id}");
+    }
+
+    private void ConfirmDelete(EmployeeDto employee)
+    {
+        employeeToDelete = employee;
+        showDeleteDialog = true;
+    }
+
+    private async Task DeleteEmployee()
+    {
+        if (employeeToDelete == null)
+            return;
+
+        try
+        {
+            isLoading = true;
+
+            var result = await EmployeeService
+                .DeleteEmployeeAsync(employeeToDelete.Id);
+
+            if (result)
+            {
+                showDeleteDialog = false;
+                employeeToDelete = null;
+
+                await LoadEmployees();
+
+                successMessage = "Employee deleted successfully.";
+            }
+            else
+            {
+                errorMessage = "Unable to delete employee.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+    private void CancelDelete()
+    {
+        showDeleteDialog = false;
+        employeeToDelete = null;
+    }
+}

@@ -1,0 +1,154 @@
+﻿@page "/"
+@layout LoginLayout
+@rendermode InteractiveServer
+
+@using EmployeeManagement.Blazor.Components.Layout
+@using EmployeeManagement.Blazor.Models
+@using EmployeeManagement.Blazor.Models.AuthModels
+@using EmployeeManagement.Blazor.Services
+@using EmployeeManagement.Blazor.Services.Auth
+
+@inject IAuthService AuthService
+@inject ITokenStorageService TokenStorage
+@inject JwtAuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+<div class="login-page">
+
+    <div class="login-card">
+
+        <div class="text-center mb-4">
+
+            <h3 class="login-title">
+                Employee Management
+            </h3>
+
+            <p class="text-muted">
+                Sign in to your account
+            </p>
+
+        </div>
+
+        <EditForm Model="@loginModel"
+                  OnValidSubmit="@LoginAsync"
+                  FormName="loginForm">
+
+            <DataAnnotationsValidator />
+
+            <div class="mb-3">
+
+                <label class="form-label">
+                    Username
+                </label>
+
+                <InputText class="form-control"
+                           @bind-Value="loginModel.UserName"
+                           placeholder="Enter username" />
+
+                <ValidationMessage For="@(() => loginModel.UserName)" />
+
+            </div>
+
+            <div class="mb-3">
+
+                <label class="form-label">
+                    Password
+                </label>
+
+                <InputText class="form-control"
+                           type="password"
+                           @bind-Value="loginModel.Password"
+                           placeholder="Enter password" />
+
+                <ValidationMessage For="@(() => loginModel.Password)" />
+
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                <div class="alert alert-danger">
+                    @errorMessage
+                </div>
+            }
+
+            <button type="submit"
+                    class="btn btn-primary w-100"
+                    disabled="@isLoading">
+
+                @(isLoading
+                                ? "Logging in..."
+                                : "Login")
+
+            </button>
+
+        </EditForm>
+
+        <div class="text-center mt-4">
+
+            <small class="text-muted">
+                Employee Management System
+            </small>
+
+        </div>
+
+    </div>
+
+</div>
+
+@code {
+
+    private LoginRequest loginModel = new();
+
+    private bool isLoading;
+
+    private string errorMessage = string.Empty;
+
+    private async Task LoginAsync()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = string.Empty;
+
+            var result =
+                await AuthService.LoginAsync(loginModel);
+
+            if (result?.Data == null)
+            {
+                errorMessage =
+                    result?.Message ??
+                    "Invalid username or password.";
+
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(
+                    result.Data.AccessToken))
+            {
+                errorMessage =
+                    "Login successful, but JWT token was not returned.";
+
+                return;
+            }
+
+            await TokenStorage.SetTokenAsync(
+                result.Data.AccessToken);
+
+            AuthenticationStateProvider
+                .NotifyUserAuthentication(
+                    result.Data.AccessToken);
+
+            Navigation.NavigateTo(
+                "/employees");
+        }
+        catch (Exception ex)
+        {
+            errorMessage =
+                $"Login failed: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

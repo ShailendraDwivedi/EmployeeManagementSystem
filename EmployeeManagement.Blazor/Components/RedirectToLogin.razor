@@ -1,0 +1,19 @@
+﻿@inject NavigationManager Navigation
+
+<p class="text-center mt-4">
+    Redirecting to login...
+</p>
+
+@code {
+
+    protected override void OnAfterRender(
+        bool firstRender)
+    {
+        if (firstRender)
+        {
+            Navigation.NavigateTo(
+                "/login",
+                replace: true);
+        }
+    }
+}

@@ -1,0 +1,19 @@
+﻿<div class="text-center my-4">
+    <div class="spinner-border" role="status">
+        <span class="visually-hidden">
+            Loading...
+        </span>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Message))
+    {
+        <div class="mt-2 text-muted">
+            @Message
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string Message { get; set; } = "Loading...";
+}
