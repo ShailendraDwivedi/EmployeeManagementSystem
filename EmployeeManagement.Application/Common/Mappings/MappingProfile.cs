@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using EmployeeManagement.Application.Attendances.DTOs;
 using EmployeeManagement.Application.Departments.Commands.CreateDepartment;
 using EmployeeManagement.Application.Departments.Commands.UpdateDepartment;
 using EmployeeManagement.Application.Departments.DTOs;
@@ -48,5 +49,27 @@ public class MappingProfile : Profile
 
         CreateMap<Designation, DesignationDto>();
         CreateMap<UpdateDesignationCommand, Designation>();
+
+        // Attendence mappings 
+
+        CreateMap<Attendance, AttendanceDto>()
+            .ForMember(
+                dest => dest.EmployeeName,
+                opt => opt.MapFrom(
+                    src => src.Employee.FirstName + " " +
+                           src.Employee.LastName));
+
+        CreateMap<Attendance, AttendanceListDto>()
+            .ForMember(
+                dest => dest.EmployeeName,
+                opt => opt.MapFrom(
+                    src => src.Employee.FirstName + " " +
+                           src.Employee.LastName))
+            .ForMember(
+                dest => dest.Status,
+                opt => opt.MapFrom(
+                    src => src.CheckOut.HasValue
+                        ? "Checked Out"
+                        : "Checked In"));
     }
 }

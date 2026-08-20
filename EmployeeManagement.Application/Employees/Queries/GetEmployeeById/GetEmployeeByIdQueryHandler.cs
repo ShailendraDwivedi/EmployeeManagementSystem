@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using EmployeeManagement.Application.Common.Interfaces;
 using EmployeeManagement.Application.Employees.DTOs;
-using EmployeeManagement.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 

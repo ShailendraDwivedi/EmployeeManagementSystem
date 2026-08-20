@@ -13,5 +13,7 @@ public interface IUnitOfWork
 
     IRepository<RefreshToken> RefreshTokens { get; }
 
+    IRepository<Attendance> Attendances { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

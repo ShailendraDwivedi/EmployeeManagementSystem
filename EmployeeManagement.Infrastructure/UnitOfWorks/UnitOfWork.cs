@@ -14,6 +14,7 @@ public class UnitOfWork : IUnitOfWork
     private IRepository<Department>? _departments;
     private IRepository<Designation>? _designations;
     private IRepository<RefreshToken>? _refreshTokens;
+    private IRepository<Attendance>? _attendances;
 
     public UnitOfWork(ApplicationDbContext context)
     {
@@ -31,6 +32,8 @@ public class UnitOfWork : IUnitOfWork
 
     public IRepository<RefreshToken> RefreshTokens =>
         _refreshTokens ??= new Repository<RefreshToken>(_context);
+    public IRepository<Attendance> Attendances =>
+       _attendances ??= new Repository<Attendance>(_context);
 
     public async Task<int> SaveChangesAsync(
         CancellationToken cancellationToken = default)

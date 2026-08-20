@@ -1,5 +1,6 @@
 using EmployeeManagement.Blazor.Components;
 using EmployeeManagement.Blazor.Services;
+using EmployeeManagement.Blazor.Services.Attendance;
 using EmployeeManagement.Blazor.Services.Auth;
 using EmployeeManagement.Blazor.Services.Department;
 using EmployeeManagement.Blazor.Services.Designation;
@@ -44,6 +45,7 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IDepartmentService, DepartmentService>();
 builder.Services.AddScoped<IDesignationService, DesignationService>();
+builder.Services.AddScoped<IAttendanceService, AttendanceService>();
 builder.Services.AddScoped<JwtAuthorizationHandler>();
 
 // API client

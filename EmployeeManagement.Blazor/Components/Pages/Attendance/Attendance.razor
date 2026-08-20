@@ -1,0 +1,767 @@
+﻿@page "/attendance"
+
+@using EmployeeManagement.Blazor.Models
+@using EmployeeManagement.Blazor.Models.Attendance
+@using EmployeeManagement.Blazor.Models.EmployeeModels
+@using EmployeeManagement.Blazor.Services.Attendance
+@using EmployeeManagement.Blazor.Services.Employee
+
+@inject IAttendanceService AttendanceService
+@inject IEmployeeService EmployeeService
+@inject NavigationManager Navigation
+
+
+
+<PageTitle>Attendance</PageTitle>
+
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>
+            <i class="bi bi-calendar-check me-2"></i>
+            Attendance
+        </h3>
+
+        <button class="btn btn-primary"
+                @onclick="LoadAttendanceAsync">
+            <i class="bi bi-arrow-clockwise me-1"></i>
+            Refresh
+        </button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible">
+            @SuccessMessage
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible">
+            @ErrorMessage
+        </div>
+    }
+
+    <!-- Check-In -->
+    <div class="card mb-3">
+
+        <div class="card-header">
+            <strong>
+                <i class="bi bi-box-arrow-in-right me-2"></i>
+                Employee Check-In
+            </strong>
+        </div>
+
+        <div class="card-body">
+
+            <div class="row g-3 align-items-end">
+
+                <div class="col-md-6">
+
+                    <label class="form-label">
+                        Select Employee
+                    </label>
+
+                    <select class="form-select"
+                            @bind="SelectedEmployeeId">
+
+                        <option value="">
+                            -- Select Employee --
+                        </option>
+
+                        @foreach (var employee in Employees)
+                        {
+                            <option value="@employee.Id">
+                                @employee.FirstName @employee.LastName
+                            </option>
+                        }
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-3">
+
+                    <button class="btn btn-success w-100"
+                            disabled="@IsCheckingIn"
+                            @onclick="CheckInAsync">
+
+                        @if (IsCheckingIn)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2">
+                            </span>
+
+                            <span>
+                                Checking In...
+                            </span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-box-arrow-in-right me-1"></i>
+
+                            <span>
+                                Check In
+                            </span>
+                        }
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+    <!-- Search -->
+    <div class="card mb-3">
+        <div class="card-body">
+
+            <div class="row g-3">
+
+                <div class="col-md-6">
+
+                    <label class="form-label">
+                        Search Employee
+                    </label>
+
+                    <div class="input-group">
+
+                        <input type="text"
+                               class="form-control"
+                               placeholder="Search by employee name or email..."
+                               @bind="SearchText"
+                               @bind:event="oninput"
+                               @onkeydown="HandleSearchKeyDown" />
+
+                        <button class="btn btn-primary"
+                                @onclick="SearchAsync">
+
+                            <i class="bi bi-search"></i>
+                            Search
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-6 d-flex align-items-end">
+
+                    <button class="btn btn-outline-secondary"
+                            @onclick="ClearSearchAsync">
+
+                        <i class="bi bi-x-circle me-1"></i>
+                        Clear
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- Attendance Table -->
+    <div class="card">
+
+        <div class="card-header d-flex justify-content-between">
+
+            <strong>Attendance Records</strong>
+
+            <span class="text-muted">
+                Total Records: @TotalCount
+            </span>
+
+        </div>
+
+        <div class="card-body p-0">
+
+            @if (IsLoading)
+            {
+                <div class="text-center p-5">
+
+                    <div class="spinner-border text-primary"
+                         role="status">
+                    </div>
+
+                    <div class="mt-2">
+                        Loading attendance...
+                    </div>
+
+                </div>
+            }
+            else if (AttendanceRecords.Count == 0)
+            {
+                <div class="alert alert-info m-3">
+                    No attendance records found.
+                </div>
+            }
+            else
+            {
+                <div class="card mb-3">
+
+                    <div class="card-header">
+                        <strong>
+                            <i class="bi bi-funnel me-2"></i>
+                            Attendance Filters
+                        </strong>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row g-3">
+
+                            <!-- Employee -->
+
+                            <div class="col-md-3">
+
+                                <label class="form-label">
+                                    Employee
+                                </label>
+
+                                <select class="form-select"
+                                        @bind="SelectedEmployeeId">
+
+                                    <option value="">
+                                        All Employees
+                                    </option>
+
+                                    @foreach (var employee in Employees)
+                                    {
+                                        <option value="@employee.Id">
+                                            @employee.FirstName
+                                            @employee.LastName
+                                        </option>
+                                    }
+
+                                </select>
+
+                            </div>
+
+
+                            <!-- From Date -->
+
+                            <div class="col-md-2">
+
+                                <label class="form-label">
+                                    From Date
+                                </label>
+
+                                <input type="date"
+                                       class="form-control"
+                                       @bind="FromDate" />
+
+                            </div>
+
+
+                            <!-- To Date -->
+
+                            <div class="col-md-2">
+
+                                <label class="form-label">
+                                    To Date
+                                </label>
+
+                                <input type="date"
+                                       class="form-control"
+                                       @bind="ToDate" />
+
+                            </div>
+
+
+                            <!-- Status -->
+
+                            <div class="col-md-2">
+
+                                <label class="form-label">
+                                    Status
+                                </label>
+
+                                <select class="form-select"
+                                        @bind="SelectedStatus">
+
+                                    <option value="">
+                                        All
+                                    </option>
+
+                                    <option value="CheckedIn">
+                                        Checked In
+                                    </option>
+
+                                    <option value="CheckedOut">
+                                        Checked Out
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            <!-- Buttons -->
+
+                            <div class="col-md-3 d-flex align-items-end">
+
+                                <button class="btn btn-primary me-2"
+                                        @onclick="ApplyFiltersAsync">
+
+                                    <i class="bi bi-search me-1"></i>
+                                    Apply
+
+                                </button>
+
+                                <button class="btn btn-outline-secondary"
+                                        @onclick="ResetFiltersAsync">
+
+                                    <i class="bi bi-x-circle me-1"></i>
+                                    Reset
+
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+                <div class="table-responsive">
+
+                    <table class="table table-hover table-bordered mb-0">
+
+                        <thead class="table-light">
+
+                            <tr>
+
+                                <th>Employee</th>
+
+                                <th>Check In</th>
+
+                                <th>Check Out</th>
+
+                                <th>Working Hours</th>
+
+                                <th>Status</th>
+
+                                <th style="width: 130px;">
+                                    Action
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            @foreach (var attendance in AttendanceRecords)
+                            {
+                                <tr>
+
+                                    <td>
+                                        <strong>
+                                            @attendance.EmployeeName
+                                        </strong>
+                                    </td>
+
+                                    <td>
+                                        @attendance.CheckIn.ToLocalTime().ToString("dd-MMM-yyyy hh:mm tt")
+                                    </td>
+
+                                    <td>
+
+                                        @if (attendance.CheckOut.HasValue)
+                                        {
+                                            @attendance.CheckOut.Value.ToLocalTime().ToString("dd-MMM-yyyy hh:mm tt")
+
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">
+                                                -
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                    <td>
+
+                                        @if (attendance.WorkingHours.HasValue)
+                                        {
+                                            @($"{attendance.WorkingHours.Value:0.00} hrs")
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">
+                                                -
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                    <td>
+
+                                        @if (attendance.CheckOut.HasValue)
+                                        {
+                                            <span class="badge bg-success">
+                                                Checked Out
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning text-dark">
+                                                Checked In
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary"
+                                                title="View Details"
+                                                @onclick="() => ViewAttendanceDetails(attendance.AttendanceId)">
+
+                                            <i class="bi bi-eye me-1"></i>
+                                            Details
+
+                                        </button>
+
+                                        @if (!attendance.CheckOut.HasValue)
+                                        {
+                                            <button class="btn btn-sm btn-danger ms-1" title="Check Out"
+                                                    @onclick="() => CheckOutAsync(attendance.AttendanceId)">
+
+                                                <i class="bi bi-box-arrow-right me-1"></i>
+
+                                                Check Out
+
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success ms-1">
+                                                Completed
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                </tr>
+                            }
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+            }
+
+        </div>
+
+
+        <!-- Pagination -->
+        @if (TotalPages > 0)
+        {
+            <div class="card-footer">
+
+                <div class="d-flex justify-content-between align-items-center">
+
+                    <div>
+                        Showing
+                        <strong>@StartRecord</strong>
+                        -
+                        <strong>@EndRecord</strong>
+                        of
+                        <strong>@TotalCount</strong>
+                    </div>
+
+                    <div class="btn-group">
+
+                        <button class="btn btn-outline-primary"
+                                disabled="@(CurrentPage <= 1)"
+                                @onclick="PreviousPageAsync">
+
+                            <i class="bi bi-chevron-left"></i>
+                            Previous
+
+                        </button>
+
+                        <button class="btn btn-primary">
+                            Page @CurrentPage of @TotalPages
+                        </button>
+
+                        <button class="btn btn-outline-primary"
+                                disabled="@(CurrentPage >= TotalPages)"
+                                @onclick="NextPageAsync">
+
+                            Next
+                            <i class="bi bi-chevron-right"></i>
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+        }
+
+    </div>
+
+</div>
+@code {
+
+    private List<AttendanceDto> AttendanceRecords = new();
+
+    private List<EmployeeDto> Employees = new();
+
+    private Guid? SelectedEmployeeId;
+
+    private string SearchText = string.Empty;
+
+    private string? Search;
+
+    private int CurrentPage = 1;
+
+    private int PageSize = 10;
+
+    private int TotalCount;
+
+    private int TotalPages;
+
+    private bool IsLoading;
+
+    private bool IsCheckingIn;
+
+    private string SuccessMessage = string.Empty;
+
+    private string ErrorMessage = string.Empty;
+
+    private DateTime? FromDate;
+
+    private DateTime? ToDate;
+
+    private string? SelectedStatus;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEmployeesAsync();
+        await LoadAttendanceAsync();
+    }
+
+    private async Task LoadEmployeesAsync()
+    {
+        try
+        {
+            ErrorMessage = string.Empty;
+
+            var result = await EmployeeService.GetEmployeesAsync(1, 1000, null);
+
+            Employees = result.Items?.ToList() ?? new List<EmployeeDto>();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage =
+                $"Unable to load employees: {ex.Message}";
+        }
+    }
+    private async Task LoadAttendanceAsync()
+    {
+        try
+        {
+            IsLoading = true;
+
+            ErrorMessage = string.Empty;
+
+            var result =
+             await AttendanceService.GetAttendancesAsync(
+                 CurrentPage,
+                 PageSize,
+                 Search,
+                 SelectedEmployeeId,
+                 FromDate,
+                 ToDate,
+                 SelectedStatus);
+
+            AttendanceRecords =
+            result.Items?.ToList()
+            ?? new List<AttendanceDto>();
+
+            TotalCount = result.TotalCount;
+
+            TotalPages = result.TotalPages;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task ApplyFiltersAsync()
+    {
+        CurrentPage = 1;
+
+        await LoadAttendanceAsync();
+    }
+    private async Task ResetFiltersAsync()
+    {
+        SelectedEmployeeId = null;
+
+        FromDate = null;
+
+        ToDate = null;
+
+        SelectedStatus = null;
+
+        Search = null;
+
+        SearchText = string.Empty;
+
+        CurrentPage = 1;
+
+        await LoadAttendanceAsync();
+    }
+    private async Task SearchAsync()
+    {
+        CurrentPage = 1;
+
+        Search = string.IsNullOrWhiteSpace(SearchText)
+            ? null
+            : SearchText.Trim();
+
+        await LoadAttendanceAsync();
+    }
+
+    private async Task ClearSearchAsync()
+    {
+        SearchText = string.Empty;
+
+        Search = null;
+
+        CurrentPage = 1;
+
+        await LoadAttendanceAsync();
+    }
+
+
+    private async Task PreviousPageAsync()
+    {
+        if (CurrentPage <= 1)
+            return;
+
+        CurrentPage--;
+
+        await LoadAttendanceAsync();
+    }
+
+
+    private async Task NextPageAsync()
+    {
+        if (CurrentPage >= TotalPages)
+            return;
+
+        CurrentPage++;
+
+        await LoadAttendanceAsync();
+    }
+
+
+    private async Task CheckOutAsync(Guid attendanceId)
+    {
+        try
+        {
+            SuccessMessage = string.Empty;
+
+            ErrorMessage = string.Empty;
+
+            var success =
+                await AttendanceService.CheckOutAsync(
+                    attendanceId);
+
+            if (success)
+            {
+                SuccessMessage =
+                    "Employee checked out successfully.";
+
+                await LoadAttendanceAsync();
+            }
+            else
+            {
+                ErrorMessage =
+                    "Unable to check out employee.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+        }
+    }
+
+    private async Task CheckInAsync()
+    {
+        SuccessMessage = string.Empty;
+        ErrorMessage = string.Empty;
+
+        if (!SelectedEmployeeId.HasValue ||
+            SelectedEmployeeId == Guid.Empty)
+        {
+            ErrorMessage = "Please select an employee.";
+
+            return;
+        }
+
+        try
+        {
+            IsCheckingIn = true;
+
+            var attendanceId = await AttendanceService.CheckInAsync(SelectedEmployeeId.Value);
+
+            if (attendanceId.HasValue)
+            {
+                SuccessMessage = "Employee checked in successfully.";
+
+                SelectedEmployeeId = null;
+
+                CurrentPage = 1;
+
+                await LoadAttendanceAsync();
+            }
+            else
+            {
+                ErrorMessage = "Unable to check in employee.";
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            ErrorMessage = $"Check-In failed: {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsCheckingIn = false;
+        }
+    }
+    private void ViewAttendanceDetails(Guid attendanceId)
+    {
+        Navigation.NavigateTo($"/attendance/details/{attendanceId}");
+    }
+
+    private async Task HandleSearchKeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SearchAsync();
+        }
+    }
+    private int StartRecord => TotalCount == 0 ? 0 : ((CurrentPage - 1) * PageSize) + 1;
+    private int EndRecord => Math.Min(CurrentPage * PageSize, TotalCount);
+}

@@ -1,0 +1,264 @@
+﻿@page "/attendance/employee/{EmployeeId:guid}"
+
+@using EmployeeManagement.Blazor.Models
+@using EmployeeManagement.Blazor.Models.Attendance
+@using EmployeeManagement.Blazor.Services.Attendance
+
+@inject IAttendanceService AttendanceService
+@inject NavigationManager Navigation
+
+<PageTitle>Employee Attendance History</PageTitle>
+
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between mb-4">
+
+        <h3>
+            <i class="bi bi-clock-history me-2"></i>
+            Employee Attendance History
+        </h3>
+
+        <button class="btn btn-secondary"
+                @onclick="GoBack">
+
+            <i class="bi bi-arrow-left me-1"></i>
+            Back
+
+        </button>
+
+    </div>
+
+
+    @if (IsLoading)
+    {
+        <div class="text-center p-5">
+
+            <div class="spinner-border text-primary">
+            </div>
+
+            <div class="mt-2">
+                Loading history...
+            </div>
+
+        </div>
+    }
+    else if (Records.Count == 0)
+    {
+        <div class="alert alert-info">
+            No attendance history found.
+        </div>
+    }
+    else
+    {
+        <div class="card">
+
+            <div class="card-header">
+
+                <strong>
+                    Attendance History
+                </strong>
+
+                <span class="float-end text-muted">
+                    Total: @TotalCount
+                </span>
+
+            </div>
+
+            <div class="table-responsive">
+
+                <table class="table table-bordered table-hover mb-0">
+
+                    <thead class="table-light">
+
+                        <tr>
+                            <th>Date</th>
+                            <th>Check In</th>
+                            <th>Check Out</th>
+                            <th>Working Hours</th>
+                            <th>Status</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @foreach (var record in Records)
+                        {
+                            <tr>
+
+                                <td>
+                                    @record.CheckIn.ToLocalTime().ToString("dd-MMM-yyyy")
+                                </td>
+
+                                <td>
+                                    @record.CheckIn.ToLocalTime().ToString("hh:mm tt")
+                                </td>
+
+                                <td>
+
+                                    @if (record.CheckOut.HasValue)
+                                    {
+                                        @record.CheckOut.Value.ToLocalTime().ToString("hh:mm tt")
+                                    }
+                                    else
+                                    {
+                                        <span class="text-warning">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+                                <td>
+
+                                    @if (record.WorkingHours.HasValue)
+                                    {
+                                        @($"{record.WorkingHours.Value:0.00} hrs")
+                                    }
+                                    else
+                                    {
+                                        <span>-</span>
+                                    }
+
+                                </td>
+
+                                <td>
+
+                                    @if (record.CheckOut.HasValue)
+                                    {
+                                        <span class="badge bg-success">
+                                            Completed
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark">
+                                            Checked In
+                                        </span>
+                                    }
+
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            @if (TotalPages > 0)
+            {
+                <div class="card-footer">
+
+                    <div class="d-flex justify-content-between">
+
+                        <span>
+                            Page @CurrentPage
+                            of
+                            @TotalPages
+                        </span>
+
+                        <div>
+
+                            <button class="btn btn-outline-primary me-2"
+                                    disabled="@(CurrentPage <= 1)"
+                                    @onclick="PreviousPageAsync">
+
+                                Previous
+
+                            </button>
+
+                            <button class="btn btn-outline-primary"
+                                    disabled="@(CurrentPage >= TotalPages)"
+                                    @onclick="NextPageAsync">
+
+                                Next
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            }
+
+        </div>
+    }
+
+</div>
+@code {
+
+    [Parameter]
+    public Guid EmployeeId { get; set; }
+
+    private List<AttendanceDto> Records = new();
+
+    private int CurrentPage = 1;
+
+    private int PageSize = 10;
+
+    private int TotalCount;
+
+    private int TotalPages;
+
+    private bool IsLoading;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadHistoryAsync();
+    }
+
+
+    private async Task LoadHistoryAsync()
+    {
+        try
+        {
+            IsLoading = true;
+
+            var result = await AttendanceService.GetEmployeeAttendancesAsync(EmployeeId, CurrentPage, PageSize);
+
+            Records = result.Items ?? new List<AttendanceDto>();
+
+            TotalCount = result.TotalCount;
+
+            TotalPages = result.TotalPages;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+
+    private async Task PreviousPageAsync()
+    {
+        if (CurrentPage <= 1)
+            return;
+
+        CurrentPage--;
+
+        await LoadHistoryAsync();
+    }
+
+
+    private async Task NextPageAsync()
+    {
+        if (CurrentPage >= TotalPages)
+            return;
+
+        CurrentPage++;
+
+        await LoadHistoryAsync();
+    }
+
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/attendance");
+    }
+}

@@ -35,4 +35,7 @@ public class Employee : BaseEntity
     public Department? Department { get; set; }
 
     public Designation? Designation { get; set; }
+
+    public ICollection<Attendance> Attendances { get; set; }
+    = new List<Attendance>();
 }

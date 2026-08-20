@@ -11,6 +11,8 @@ public interface IApplicationDbContext
 
     DbSet<Designation> Designations { get; }
 
+    DbSet<Attendance> Attendances { get; }
+
     Task<int> SaveChangesAsync(
         CancellationToken cancellationToken = default);
 }
