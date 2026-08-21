@@ -6,6 +6,8 @@ public class ApiResponse
 
     public string Message { get; set; } = string.Empty;
 
+    public Dictionary<string, string[]>? Errors { get; set; }
+
     public static ApiResponse Ok(string message = "Request successful.")
     {
         return new ApiResponse

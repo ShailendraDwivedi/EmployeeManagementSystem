@@ -1,5 +1,6 @@
 ﻿using EmployeeManagement.Application.Common.Interfaces;
 using EmployeeManagement.Domain.Entities;
+using EmployeeManagement.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,9 +15,7 @@ public class CheckInCommandHandler : IRequestHandler<CheckInCommand, Guid>
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Guid> Handle(
-        CheckInCommand request,
-        CancellationToken cancellationToken)
+    public async Task<Guid> Handle(CheckInCommand request, CancellationToken cancellationToken)
     {
         // Check employee exists
         var employee = await _unitOfWork.Employees
@@ -26,8 +25,7 @@ public class CheckInCommandHandler : IRequestHandler<CheckInCommand, Guid>
 
         if (employee == null)
         {
-            throw new KeyNotFoundException(
-                "Employee not found.");
+            throw new KeyNotFoundException("Employee not found.");
         }
 
         // Check whether employee already checked in
@@ -40,8 +38,7 @@ public class CheckInCommandHandler : IRequestHandler<CheckInCommand, Guid>
 
         if (existingAttendance != null)
         {
-            throw new InvalidOperationException(
-                "Employee has already checked in.");
+            throw new InvalidOperationException("Employee has already checked in.");
         }
 
         var attendance = new Attendance
@@ -50,12 +47,12 @@ public class CheckInCommandHandler : IRequestHandler<CheckInCommand, Guid>
             EmployeeId = request.EmployeeId,
             CheckIn = DateTime.UtcNow,
             CheckOut = null,
-            WorkingHours = null
+            WorkingHours = null,
+            Status = AttendanceStatus.Present,
+            AttendanceDate = DateTime.UtcNow.Date
         };
 
-        await _unitOfWork.Attendances.AddAsync(
-            attendance,
-            cancellationToken);
+        await _unitOfWork.Attendances.AddAsync(attendance, cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 

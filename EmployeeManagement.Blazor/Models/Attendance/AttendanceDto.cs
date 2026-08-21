@@ -16,5 +16,8 @@ public class AttendanceDto
 
     public decimal? WorkingHours { get; set; }
 
-    public string Status { get; set; } = string.Empty;
+    public int Status { get; set; } 
+
+
+
 }

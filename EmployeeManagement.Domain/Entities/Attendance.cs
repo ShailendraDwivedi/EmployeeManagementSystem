@@ -1,4 +1,6 @@
-﻿using EmployeeManagement.Domain.Common;
+﻿
+
+using EmployeeManagement.Domain.Enums;
 
 namespace EmployeeManagement.Domain.Entities
 {
@@ -16,5 +18,9 @@ namespace EmployeeManagement.Domain.Entities
 
         // Navigation property
         public Employee Employee { get; set; } = null!;
+
+        public DateTime? AttendanceDate { get; set; }
+
+        public AttendanceStatus Status { get; set; }
     }
 }

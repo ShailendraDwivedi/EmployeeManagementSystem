@@ -513,7 +513,7 @@
 </div>
 @code {
 
-    private List<AttendanceDto> AttendanceRecords = new();
+    private List<AttendanceListDto> AttendanceRecords = new();
 
     private List<EmployeeDto> Employees = new();
 
@@ -585,9 +585,7 @@
                  ToDate,
                  SelectedStatus);
 
-            AttendanceRecords =
-            result.Items?.ToList()
-            ?? new List<AttendanceDto>();
+            AttendanceRecords = result.Items?.ToList() ?? new List<AttendanceListDto>();
 
             TotalCount = result.TotalCount;
 

@@ -27,9 +27,13 @@
         }
         else if (!string.IsNullOrWhiteSpace(lookupError))
         {
-            <div class="alert alert-danger">
+            <div class="alert alert-danger alert-dismissible fade show">
                 @lookupError
             </div>
+            <button type="button"
+                    class="btn-close"
+                    @onclick="() => lookupError = null">
+            </button>
         }
         else
         {
@@ -239,7 +243,7 @@
                 </div>
 
             </EditForm>
-        }
+                }
     </div>
 
 </div>

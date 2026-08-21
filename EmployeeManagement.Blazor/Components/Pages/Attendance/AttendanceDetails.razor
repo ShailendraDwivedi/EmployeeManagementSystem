@@ -196,10 +196,12 @@
                                 <label class="text-muted">
                                     Status
                                 </label>
-
                                 <div>
-
-                                    @if (Attendance.CheckOut.HasValue)
+                                    <span class="badge @GetStatusCssClass(Attendance?.Status)">
+                                        @GetStatusText(Attendance?.Status)
+                                    </span>
+                                    <span class="badge""></span>
+                                    @if (Attendance!.CheckOut.HasValue)
                                     {
                                         <span class="badge bg-success">
                                             Checked Out
@@ -353,5 +355,28 @@
             return;
 
         Navigation.NavigateTo($"/attendance/employee/{Attendance.EmployeeId}");
+    }
+    private string GetStatusText(int? status)
+    {
+        return status switch
+        {
+            0 => "Present",
+            1 => "Absent",
+            2 => "Late",
+            3 => "Leave",
+            _ => "Unknown"
+        };
+    }
+
+    private string GetStatusCssClass(int? status)
+    {
+        return status switch
+        {
+            0 => "bg-success",
+            1 => "bg-danger",
+            2 => "bg-warning text-dark",
+            3 => "bg-info",
+            _ => "bg-secondary"
+        };
     }
 }

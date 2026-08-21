@@ -17,7 +17,7 @@ public class AttendanceService : IAttendanceService
         _tokenStorage = tokenStorage;
     }
 
-    public async Task<PagedResult<AttendanceDto>> GetAttendancesAsync(int pageNumber = 1, int pageSize = 10, string? search = null, Guid? employeeId = null, DateTime? fromDate = null, DateTime? toDate = null, string? status = null)
+    public async Task<PagedResult<AttendanceListDto>> GetAttendancesAsync(int pageNumber = 1, int pageSize = 10, string? search = null, Guid? employeeId = null, DateTime? fromDate = null, DateTime? toDate = null, string? status = null)
     {
         var token = await _tokenStorage.GetTokenAsync();
 
@@ -74,10 +74,10 @@ public class AttendanceService : IAttendanceService
 
         var result =
             await response.Content
-                .ReadFromJsonAsync<PagedResult<AttendanceDto>>();
+                .ReadFromJsonAsync<PagedResult<AttendanceListDto>>();
 
         return result ??
-               new PagedResult<AttendanceDto>();
+               new PagedResult<AttendanceListDto>();
     }
 
     public async Task<AttendanceDto?> GetAttendanceByIdAsync(Guid id)
@@ -163,7 +163,7 @@ public class AttendanceService : IAttendanceService
 
         return response.IsSuccessStatusCode;
     }
-    public async Task<PagedResult<AttendanceDto>> GetEmployeeAttendancesAsync(Guid employeeId, int pageNumber = 1, int pageSize = 10)
+    public async Task<PagedResult<AttendanceListDto>> GetEmployeeAttendancesAsync(Guid employeeId, int pageNumber = 1, int pageSize = 10)
     {
         var token = await _tokenStorage.GetTokenAsync();
 
@@ -182,8 +182,47 @@ public class AttendanceService : IAttendanceService
 
         response.EnsureSuccessStatusCode();
 
-        var result = await response.Content.ReadFromJsonAsync<PagedResult<AttendanceDto>>();
+        var result = await response.Content.ReadFromJsonAsync<PagedResult<AttendanceListDto>>();
 
-        return result ?? new PagedResult<AttendanceDto>();
+        return result ?? new PagedResult<AttendanceListDto>();
+    }
+
+    public async Task<AttendanceDashboardDto?> GetDashboardAsync(int year, int month)
+    {
+        var token = await _tokenStorage.GetTokenAsync();
+
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            throw new Exception("JWT token is not available.");
+        }
+        var url = $"api/attendance/dashboard?year={year}&month={month}";
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.SendAsync(request);
+
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<AttendanceDashboardDto>();
+    }
+    public async Task<EmployeeAttendanceSummaryDto?> GetEmployeeSummaryAsync(Guid employeeId, int year, int month)
+    {
+        var token = await _tokenStorage.GetTokenAsync();
+
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            throw new Exception("JWT token is not available.");
+        }
+        var url = $"api/attendance/employee-summary?employeeId={employeeId}&year={year}&month={month}";
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.SendAsync(request);
+        
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<EmployeeAttendanceSummaryDto>();
     }
 }

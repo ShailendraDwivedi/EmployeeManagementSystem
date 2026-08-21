@@ -1,4 +1,6 @@
-﻿namespace EmployeeManagement.Application.Attendances.DTOs;
+﻿using EmployeeManagement.Domain.Enums;
+
+namespace EmployeeManagement.Application.Attendances.DTOs;
 
 public class AttendanceDto
 {
@@ -15,4 +17,8 @@ public class AttendanceDto
     public DateTime? CheckOut { get; set; }
 
     public decimal? WorkingHours { get; set; }
+
+    public DateTime? AttendanceDate { get; set; }
+
+    public AttendanceStatus Status { get; set; }
 }

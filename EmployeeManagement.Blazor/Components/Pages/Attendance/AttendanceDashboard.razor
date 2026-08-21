@@ -1,0 +1,292 @@
+﻿@page "/attendance/dashboard"
+@using EmployeeManagement.Blazor.Models.Attendance
+@using EmployeeManagement.Blazor.Models.EmployeeModels
+@using EmployeeManagement.Blazor.Services.Attendance
+@using EmployeeManagement.Blazor.Services.Employee
+
+
+@inject IAttendanceService AttendanceService
+@inject IEmployeeService EmployeeService
+
+<PageTitle>Attendance Dashboard</PageTitle>
+
+<h3 class="mb-4">Attendance Dashboard</h3>
+
+<div class="row mb-4">
+
+    <div class="col-md-4">
+
+        <label class="form-label">
+            Employee
+        </label>
+
+        <select class="form-select"
+                @bind="selectedEmployeeId">
+
+            <option value="">
+                -- Select Employee --
+            </option>
+
+            @foreach (var employee in employees)
+            {
+                <option value="@employee.Id">
+                    @employee.FirstName @employee.LastName
+                </option>
+            }
+
+        </select>
+
+    </div>
+    <div class="col-md-2">
+
+        <label class="form-label">
+            Year
+        </label>
+
+        <select class="form-select"
+                @bind="selectedYear">
+
+            @for (int year = DateTime.Now.Year - 2;
+                        year <= DateTime.Now.Year;
+                        year++)
+            {
+                <option value="@year">
+                    @year
+                </option>
+            }
+
+        </select>
+
+    </div>
+
+    <div class="col-md-3">
+
+        <label class="form-label">
+            Month
+        </label>
+
+        <select class="form-select"
+                @bind="selectedMonth">
+
+            @for (int month = 1; month <= 12; month++)
+            {
+                <option value="@month">
+                    @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(month)
+                </option>
+            }
+
+        </select>
+
+    </div>
+
+    <div class="col-md-2 d-flex align-items-end">
+
+        <button class="btn btn-primary"
+                @onclick="LoadAttendanceDashboard">
+
+            Load
+
+        </button>
+
+    </div>
+
+</div>
+<div class="row mb-4">
+
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted">Total Records</h6>
+                <h2>@dashboard?.TotalRecords</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted">Present</h6>
+                <h2>@dashboard?.PresentCount</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted">Absent</h6>
+                <h2>@dashboard?.AbsentCount</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted">Late</h6>
+                <h2>@dashboard?.LateCount</h2>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="row mb-4">
+
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted">Leave</h6>
+                <h2>@dashboard?.LeaveCount</h2>
+            </div>
+        </div>
+    </div>
+    @if (employeeSummary != null)
+    {
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6>Total Working Hours</h6>
+                    <h2>
+                        @employeeSummary!.TotalWorkingHours
+                    </h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6>Average Hours</h6>
+                    <h2>
+                        @employeeSummary!.AverageWorkingHours
+                    </h2>
+                </div>
+            </div>
+        </div>
+    }
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted">Present %</h6>
+                <h2>@dashboard?.PresentPercentage %</h2>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="card shadow-sm">
+
+    <div class="card-header">
+        <strong>Monthly Attendance</strong>
+    </div>
+
+    <div class="card-body">
+
+        @if (dashboard?.MonthlySummary != null &&
+                dashboard.MonthlySummary.Any())
+        {
+            <table class="table table-bordered table-striped">
+
+                <thead>
+                    <tr>
+                        <th>Year</th>
+                        <th>Month</th>
+                        <th>Total</th>
+                        <th>Present</th>
+                        <th>Absent</th>
+                        <th>Late</th>
+                        <th>Leave</th>
+                        <th>Present %</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    @foreach (var item in dashboard.MonthlySummary)
+                    {
+                        <tr>
+                            <td>@item.Year</td>
+                            <td>@item.Month</td>
+                            <td>@item.TotalDays</td>
+                            <td>@item.PresentDays</td>
+                            <td>@item.AbsentDays</td>
+                            <td>@item.LateDays</td>
+                            <td>@item.LeaveDays</td>
+                            <td>@item.PresentPercentage %</td>
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+        }
+        else
+        {
+            <p class="text-muted">
+                No attendance records found.
+            </p>
+        }
+
+    </div>
+
+</div>
+
+@code {
+
+    private AttendanceDashboardDto? dashboard;
+
+    private int selectedYear = DateTime.Now.Year;
+
+    private int selectedMonth = DateTime.Now.Month;
+
+    private Guid? selectedEmployeeId;
+
+    private EmployeeAttendanceSummaryDto? employeeSummary;
+
+    private List<EmployeeDto> employees = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAttendanceDashboard();       
+    }
+    private async Task LoadAttendanceDashboard()
+    {
+       await LoadEmployees();
+        // Load overall monthly dashboard
+        await LoadDashboard();
+
+        // Load employee-wise summary if employee is selected
+        await LoadEmployeeSummary();
+    }
+    private async Task LoadEmployees()
+    {
+        //ployees = await EmployeeService.GetEmployeesAsync();
+        var result = await EmployeeService.GetEmployeesAsync(1, 1000, null);
+        employees = result.Items?.ToList() ?? new List<EmployeeDto>();
+    }
+
+    private async Task LoadEmployeeSummary()
+    {
+        if (!selectedEmployeeId.HasValue)
+        {
+            employeeSummary = null;
+            return;
+        }
+
+        employeeSummary =
+            await AttendanceService.GetEmployeeSummaryAsync(
+                selectedEmployeeId.Value,
+                selectedYear,
+                selectedMonth);
+    }
+
+
+
+
+    private async Task LoadDashboard()
+    {
+        dashboard = await AttendanceService.GetDashboardAsync(selectedYear, selectedMonth);
+    }
+}

@@ -2,8 +2,10 @@
 using EmployeeManagement.Application.Attendances.Commands.CheckOut;
 using EmployeeManagement.Application.Attendances.DTOs;
 using EmployeeManagement.Application.Attendances.Queries.GetAttendanceById;
+using EmployeeManagement.Application.Attendances.Queries.GetAttendanceDashboard;
 using EmployeeManagement.Application.Attendances.Queries.GetAttendances;
 using EmployeeManagement.Application.Attendances.Queries.GetEmployeeAttendances;
+using EmployeeManagement.Application.Attendances.Queries.GetEmployeeAttendanceSummary;
 using EmployeeManagement.Application.Common.Models;
 using EmployeeManagement.Application.Departments.Queries.GetDepartments;
 using MediatR;
@@ -117,6 +119,28 @@ public class AttendanceController : ControllerBase
             PageNumber = pageNumber,
             PageSize = pageSize
         });
+
+        return Ok(result);
+    }
+
+    [HttpGet("dashboard")]
+    public async Task<ActionResult<AttendanceDashboardDto>> GetDashboard([FromQuery] int year, [FromQuery] int month)
+    {
+        var result = await _mediator.Send(new GetAttendanceDashboardQuery(year, month));
+
+        return Ok(result);
+    }
+    [HttpGet("employee-summary")]
+    public async Task<ActionResult<EmployeeAttendanceSummaryDto?>> GetEmployeeSummary([FromQuery] Guid employeeId, [FromQuery] int year, [FromQuery] int month)
+    {
+        var result = await _mediator.Send(
+            new GetEmployeeAttendanceSummaryQuery(
+                employeeId,
+                year,
+                month));
+
+        if (result == null)
+            return NotFound();
 
         return Ok(result);
     }

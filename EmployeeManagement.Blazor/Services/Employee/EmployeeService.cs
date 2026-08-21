@@ -1,7 +1,8 @@
-﻿using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using EmployeeManagement.Blazor.Models;
+﻿using EmployeeManagement.Blazor.Models;
 using EmployeeManagement.Blazor.Models.EmployeeModels;
+using System.Net;
+using System.Net.Http.Headers;
+using System.Text.Json;
 
 namespace EmployeeManagement.Blazor.Services.Employee;
 
@@ -175,11 +176,12 @@ public class EmployeeService : IEmployeeService
         // 7. Handle error
         if (!response.IsSuccessStatusCode)
         {
-            throw new HttpRequestException(
-                $"Unable to create employee. " +
-                $"Status: {(int)response.StatusCode} " +
-                $"{response.StatusCode}. " +
-                $"Response: {responseBody}");
+            //throw new HttpRequestException(
+            //    $"Unable to create employee. " +
+            //    $"Status: {(int)response.StatusCode} " +
+            //    $"{response.StatusCode}. " +
+            //    $"Response: {responseBody}");
+            await EnsureSuccessAsync(response);
         }
 
         return true;
@@ -223,11 +225,12 @@ public class EmployeeService : IEmployeeService
         // 7. Handle error
         if (!response.IsSuccessStatusCode)
         {
-            throw new HttpRequestException(
-                $"Unable to update employee. " +
-                $"Status: {(int)response.StatusCode} " +
-                $"{response.StatusCode}. " +
-                $"Response: {responseBody}");
+            //throw new HttpRequestException(
+            //    $"Unable to update employee. " +
+            //    $"Status: {(int)response.StatusCode} " +
+            //    $"{response.StatusCode}. " +
+            //    $"Response: {responseBody}");
+            await EnsureSuccessAsync(response);
         }
 
         return true;
@@ -267,13 +270,76 @@ public class EmployeeService : IEmployeeService
         // 6. Handle errors
         if (!response.IsSuccessStatusCode)
         {
-            throw new HttpRequestException(
-                $"Unable to delete employee. " +
-                $"Status: {(int)response.StatusCode} " +
-                $"{response.StatusCode}. " +
-                $"Response: {responseBody}");
+            //throw new HttpRequestException(
+            //    $"Unable to delete employee. " +
+            //    $"Status: {(int)response.StatusCode} " +
+            //    $"{response.StatusCode}. " +
+            //    $"Response: {responseBody}");
+            await EnsureSuccessAsync(response);
         }
 
         return true;
     }
+
+
+    private static async Task EnsureSuccessAsync(HttpResponseMessage response)
+    {
+        if (response.IsSuccessStatusCode)
+            return;
+
+        var body =
+            await response.Content.ReadAsStringAsync();
+
+        string message;
+
+        try
+        {
+            var error =
+                System.Text.Json.JsonSerializer
+                    .Deserialize<ApiErrorResponse>(
+                        body,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+            message =
+                error?.Message
+                ?? body;
+        }
+        catch
+        {
+            message = body;
+        }
+
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            message =
+                response.StatusCode switch
+                {
+                    HttpStatusCode.BadRequest =>
+                        "Invalid request.",
+
+                    HttpStatusCode.Unauthorized =>
+                        "Your session has expired. Please login again.",
+
+                    HttpStatusCode.Forbidden =>
+                        "You are not authorized to perform this action.",
+
+                    HttpStatusCode.NotFound =>
+                        "The requested record was not found.",
+
+                    HttpStatusCode.InternalServerError =>
+                        "An unexpected server error occurred.",
+
+                    _ =>
+                        "An error occurred while processing your request."
+                };
+        }
+
+        throw new ApiException(
+            (int)response.StatusCode,
+            message);
+    }
+
 }

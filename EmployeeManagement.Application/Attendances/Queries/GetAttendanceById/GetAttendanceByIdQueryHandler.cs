@@ -27,6 +27,27 @@ public class GetAttendanceByIdQueryHandler : IRequestHandler<GetAttendanceByIdQu
             return null;
         }
 
-        return _mapper.Map<AttendanceDto>(attendance);
+        var attendanceDto = new AttendanceDto
+        {
+            AttendanceId = attendance.AttendanceId,
+
+            EmployeeId = attendance.EmployeeId,
+
+            EmployeeCode = attendance.Employee?.EmployeeCode ?? string.Empty,
+
+            EmployeeName = attendance.Employee == null ? string.Empty
+            : $"{attendance.Employee.FirstName} {attendance.Employee.LastName}",
+
+            AttendanceDate = attendance.AttendanceDate,
+
+            Status = attendance.Status,
+
+            CheckIn = attendance.CheckIn,
+
+            CheckOut = attendance.CheckOut,
+            WorkingHours = attendance.WorkingHours
+        };
+
+        return _mapper.Map<AttendanceDto>(attendanceDto);
     }
 }

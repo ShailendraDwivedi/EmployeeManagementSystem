@@ -195,7 +195,7 @@
     [Parameter]
     public Guid EmployeeId { get; set; }
 
-    private List<AttendanceDto> Records = new();
+    private List<AttendanceListDto> Records = new();
 
     private int CurrentPage = 1;
 
@@ -222,7 +222,7 @@
 
             var result = await AttendanceService.GetEmployeeAttendancesAsync(EmployeeId, CurrentPage, PageSize);
 
-            Records = result.Items ?? new List<AttendanceDto>();
+            Records = result.Items ?? new List<AttendanceListDto>();
 
             TotalCount = result.TotalCount;
 
